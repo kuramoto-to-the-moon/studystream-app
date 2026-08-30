@@ -35,6 +35,7 @@ const initialState = {
     background: '#000000',
     backgroundOpacity: 0.9,
     textColor: '#ffffff',
+    textOpacity: 1,
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',
       paused: '少し会話しています。学習タイマーは一時停止中です。',
@@ -42,15 +43,15 @@ const initialState = {
       idle: 'まもなく学習を始めます。',
     },
     widgets: [
-      { id: 'state', visible: true, size: 'large' },
-      { id: 'timer', visible: true, size: 'large' },
-      { id: 'message', visible: true, size: 'medium' },
-      { id: 'session', visible: true, size: 'small' },
-      { id: 'today', visible: true, size: 'small' },
-      { id: 'streaks', visible: true, size: 'small' },
+      { id: 'state', visible: true },
+      { id: 'timer', visible: true },
+      { id: 'message', visible: true },
+      { id: 'session', visible: true },
+      { id: 'today', visible: true },
+      { id: 'streaks', visible: true },
     ],
     streaks: [
-      { id: 'smoke-free', name: '禁煙', startedOn: '2026-07-13', visible: true },
+      { id: 'smoke-free', name: '禁煙', kind: 'days', startedOn: '2026-07-13', visible: true },
     ],
   },
 };

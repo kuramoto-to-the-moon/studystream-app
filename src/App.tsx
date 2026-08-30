@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, WidgetId, WidgetSize } from './model';
+import type { AppState, Streak, WidgetId } from './model';
 import { formatClock, formatDuration, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
@@ -31,24 +31,12 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const [selected, setSelected] = useState<WidgetId>('state');
   if (!state || !displaySession) return null;
 
-  const selectedWidget = state.settings.widgets.find((widget) => widget.id === selected) || state.settings.widgets[0];
-
   function patchState(mutator: (draft: AppState) => AppState) {
     update(mutator);
   }
 
   function patchSettings(changes: Partial<AppState['settings']>) {
     patchState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
-  }
-
-  function updateSelected(changes: { visible?: boolean; size?: WidgetSize }) {
-    patchState((current) => ({
-      ...current,
-      settings: {
-        ...current.settings,
-        widgets: current.settings.widgets.map((widget) => (widget.id === selected ? { ...widget, ...changes } : widget)),
-      },
-    }));
   }
 
   return (
@@ -77,9 +65,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           session={displaySession}
           now={now}
           selected={selected}
-          selectedWidget={selectedWidget}
           onSelect={setSelected}
-          onUpdateSelected={updateSelected}
           patchSettings={patchSettings}
           patchState={patchState}
           onBack={() => setPage('control')}
@@ -172,9 +158,7 @@ function EditorPage({
   session,
   now,
   selected,
-  selectedWidget,
   onSelect,
-  onUpdateSelected,
   patchSettings,
   patchState,
   onBack,
@@ -183,15 +167,12 @@ function EditorPage({
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
   selected: WidgetId;
-  selectedWidget: AppState['settings']['widgets'][number];
   onSelect: (id: WidgetId) => void;
-  onUpdateSelected: (changes: { visible?: boolean; size?: WidgetSize }) => void;
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
   onBack: () => void;
 }) {
   const language = state.settings.language;
-  const messageKey = phaseKey(session);
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
 
   const visibleCount = useMemo(() => state.settings.widgets.filter((widget) => widget.visible).length, [state.settings.widgets]);
@@ -204,7 +185,7 @@ function EditorPage({
             <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
             <h1>視聴者表示を直接編集</h1>
           </div>
-          <span className="helper-text">表示する内容を選び、文字サイズを調整</span>
+          <span className="helper-text">表示する内容と見た目を調整</span>
         </div>
         <div className={`preview-canvas editor-canvas preview-${state.settings.layout}`}>
           <Board
@@ -252,18 +233,11 @@ function EditorPage({
               </div>
             </div>
             <div className="selected-item-settings">
-            <p className="eyebrow">選択中の項目</p>
-            <h2>{widgetLabels[language][selected]}</h2>
-            <Field label="文字サイズ">
-              <div className="segmented">
-                {(['small', 'medium', 'large'] as WidgetSize[]).map((size) => (
-                  <button key={size} className={selectedWidget.size === size ? 'active' : ''} onClick={() => onUpdateSelected({ size })}>
-                    {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            {selected === 'streaks' && <StreakEditor state={state} patchState={patchState} />}
+              <p className="eyebrow">選択中の項目</p>
+              <h2>{widgetLabels[language][selected]}</h2>
+              {selected === 'streaks'
+                ? <StreakEditor state={state} patchState={patchState} />
+                : <p className="empty-settings">この項目は表示・非表示だけ変更できます。</p>}
             </div>
           </div>
         )}
@@ -272,20 +246,18 @@ function EditorPage({
           <div className="inspector-content">
             <p className="eyebrow">メッセージ設定</p>
             <h2>状態別メッセージ</h2>
-            <Field label="現在の状態">
-              <select value={messageKey} disabled>
-                <option>{uiCopy[language][messageKey]}</option>
-              </select>
-            </Field>
-            <Field label="視聴者に表示する文言">
-              <textarea
-                rows={5}
-                maxLength={220}
-                value={state.settings.messages[messageKey]}
-                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageKey]: event.target.value } })}
-              />
-              <small>{state.settings.messages[messageKey].length}/220文字</small>
-            </Field>
+            <p className="settings-note">各状態で視聴者に表示する文言を設定します。</p>
+            {(['study', 'paused', 'break', 'idle'] as const).map((messageKey) => (
+              <Field key={messageKey} label={messageLabels[language][messageKey]}>
+                <textarea
+                  rows={3}
+                  maxLength={220}
+                  value={state.settings.messages[messageKey]}
+                  onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageKey]: event.target.value } })}
+                />
+                <small>{state.settings.messages[messageKey].length}/220文字</small>
+              </Field>
+            ))}
           </div>
         )}
 
@@ -306,6 +278,9 @@ function EditorPage({
             <Field label={`背景の不透明度 ${Math.round(state.settings.backgroundOpacity * 100)}%`}>
               <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
             </Field>
+            <Field label={`文字の不透明度 ${Math.round((state.settings.textOpacity ?? 1) * 100)}%`}>
+              <input type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
+            </Field>
           </div>
         )}
       </aside>
@@ -314,19 +289,96 @@ function EditorPage({
 }
 
 function StreakEditor({ state, patchState }: { state: AppState; patchState: (mutator: (draft: AppState) => AppState) => void }) {
-  const streak = state.settings.streaks[0];
-  if (!streak) return null;
-  const change = (changes: Partial<typeof streak>) => patchState((current) => ({
-    ...current,
-    settings: { ...current.settings, streaks: current.settings.streaks.map((item) => item.id === streak.id ? { ...item, ...changes } : item) },
-  }));
+  const [selectedId, setSelectedId] = useState<string | null>(state.settings.streaks[0]?.id ?? null);
+  const streak = state.settings.streaks.find((item) => item.id === selectedId) ?? state.settings.streaks[0];
+  const change = (changes: Partial<Streak>) => {
+    if (!streak) return;
+    patchState((current) => ({
+      ...current,
+      settings: { ...current.settings, streaks: current.settings.streaks.map((item) => item.id === streak.id ? { ...item, ...changes } : item) },
+    }));
+  };
+  const addItem = () => {
+    const id = globalThis.crypto?.randomUUID?.() ?? `item-${Date.now()}`;
+    const item: Streak = { id, name: '新しい項目', kind: 'count', count: 0, unit: '回', visible: true };
+    patchState((current) => ({
+      ...current,
+      settings: { ...current.settings, streaks: [...current.settings.streaks, item] },
+    }));
+    setSelectedId(id);
+  };
+  const removeItem = () => {
+    if (!streak) return;
+    patchState((current) => ({
+      ...current,
+      settings: { ...current.settings, streaks: current.settings.streaks.filter((item) => item.id !== streak.id) },
+    }));
+    setSelectedId(state.settings.streaks.find((item) => item.id !== streak.id)?.id ?? null);
+  };
   return (
     <div className="streak-editor">
-      <Field label="項目名"><input value={streak.name} maxLength={32} onChange={(event) => change({ name: event.target.value })} /></Field>
-      <Field label="開始日"><input type="date" value={streak.startedOn} onChange={(event) => change({ startedOn: event.target.value })} /></Field>
+      <div className="streak-editor-heading">
+        <div><strong>登録した項目</strong><small>表示中の項目は6秒ごとに切り替わります</small></div>
+        <button type="button" className="add-streak-button" onClick={addItem}>＋ 追加</button>
+      </div>
+      {state.settings.streaks.length > 0 ? (
+        <div className="streak-list">
+          {state.settings.streaks.map((item) => (
+            <div key={item.id} className={`streak-list-row${item.id === streak?.id ? ' active' : ''}`}>
+              <button type="button" onClick={() => setSelectedId(item.id)}>
+                <strong>{item.name || '名称未設定'}</strong>
+                <small>{item.kind === 'count' ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}` : '開始日からの日数'}</small>
+              </button>
+              <input
+                type="checkbox"
+                aria-label={`${item.name || '名称未設定'}を表示`}
+                checked={item.visible}
+                onChange={(event) => {
+                  const visible = event.target.checked;
+                  patchState((current) => ({
+                    ...current,
+                    settings: { ...current.settings, streaks: current.settings.streaks.map((currentItem) => currentItem.id === item.id ? { ...currentItem, visible } : currentItem) },
+                  }));
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      ) : <p className="empty-settings">まだ項目がありません。「追加」から作成できます。</p>}
+      {streak && (
+        <div className="streak-detail">
+          <Field label="項目名"><input value={streak.name} maxLength={32} onChange={(event) => change({ name: event.target.value })} /></Field>
+          <Field label="記録方法">
+            <div className="segmented">
+              <button type="button" className={(streak.kind ?? 'days') === 'days' ? 'active' : ''} onClick={() => change({ kind: 'days', startedOn: streak.startedOn || new Date().toISOString().slice(0, 10) })}>開始日からの日数</button>
+              <button type="button" className={streak.kind === 'count' ? 'active' : ''} onClick={() => change({ kind: 'count', count: streak.count ?? 0, unit: streak.unit || '回' })}>回数・数量</button>
+            </div>
+          </Field>
+          {(streak.kind ?? 'days') === 'days' ? (
+            <Field label="開始日"><input type="date" value={streak.startedOn || ''} onChange={(event) => change({ startedOn: event.target.value })} /></Field>
+          ) : (
+            <>
+              <div className="count-fields">
+                <Field label="現在の数"><input type="number" min="0" step="1" value={streak.count ?? 0} onChange={(event) => change({ count: Math.max(0, Number(event.target.value) || 0) })} /></Field>
+                <Field label="単位"><input value={streak.unit || ''} maxLength={8} placeholder="回・冊・本" onChange={(event) => change({ unit: event.target.value })} /></Field>
+              </div>
+              <div className="count-actions">
+                <button type="button" onClick={() => change({ count: Math.max(0, (streak.count ?? 0) - 1) })}>−1</button>
+                <button type="button" onClick={() => change({ count: (streak.count ?? 0) + 1 })}>＋1</button>
+              </div>
+            </>
+          )}
+          <button type="button" className="remove-streak-button" onClick={removeItem}>この項目を削除</button>
+        </div>
+      )}
     </div>
   );
 }
+
+const messageLabels = {
+  ja: { study: '学習中', paused: '一時停止中', break: '休憩中', idle: '待機中' },
+  en: { study: 'Studying', paused: 'Paused', break: 'On break', idle: 'Ready' },
+} as const;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="field"><span>{label}</span>{children}</label>;

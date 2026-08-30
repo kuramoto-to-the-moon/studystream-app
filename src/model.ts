@@ -2,7 +2,6 @@ export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
 export type WidgetId = 'state' | 'timer' | 'message' | 'session' | 'today' | 'streaks';
-export type WidgetSize = 'small' | 'medium' | 'large';
 
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'session', 'today', 'streaks'];
 
@@ -22,13 +21,15 @@ export interface SessionState {
 export interface WidgetConfig {
   id: WidgetId;
   visible: boolean;
-  size: WidgetSize;
 }
 
 export interface Streak {
   id: string;
   name: string;
-  startedOn: string;
+  kind?: 'days' | 'count';
+  startedOn?: string;
+  count?: number;
+  unit?: string;
   visible: boolean;
 }
 
@@ -40,6 +41,7 @@ export interface Settings {
   background: string;
   backgroundOpacity: number;
   textColor: string;
+  textOpacity?: number;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
   streaks: Streak[];

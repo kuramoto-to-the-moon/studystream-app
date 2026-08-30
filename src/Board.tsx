@@ -34,10 +34,13 @@ export function Board({
   const key = phaseKey(session);
   const remaining = remainingSeconds(session, now);
   const message = settings.messages[key];
-  const firstStreak = settings.streaks.find((item) => item.visible);
+  const visibleStreaks = settings.streaks.filter((item) => item.visible);
+  const currentStreak = visibleStreaks.length > 0
+    ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
+    : undefined;
   const boardStyle = {
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
-    '--board-text': settings.textColor,
+    '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
   } as CSSProperties;
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible)
@@ -66,12 +69,14 @@ export function Board({
     ),
     streaks: (
       <span className="board-metric board-streak">
-        <span>{firstStreak?.name || widgetLabels[language].streaks}</span>
+        <span>{currentStreak?.name || widgetLabels[language].streaks}</span>
         <strong>
-          {firstStreak
-            ? streakDays(firstStreak.startedOn) < 0
-              ? copy.beforeStart
-              : `${streakDays(firstStreak.startedOn)}${language === 'ja' ? copy.days : ` ${copy.days}`}`
+          {currentStreak
+            ? currentStreak.kind === 'count'
+              ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
+              : streakDays(currentStreak.startedOn || '') < 0
+                ? copy.beforeStart
+                : `${streakDays(currentStreak.startedOn || '')}${language === 'ja' ? copy.days : ` ${copy.days}`}`
             : '—'}
         </strong>
       </span>
@@ -87,7 +92,7 @@ export function Board({
       {visibleWidgets.map((widget) => (
         <article
           key={widget.id}
-          className={`board-widget widget-${widget.id} size-${widget.size}${selected === widget.id ? ' is-selected' : ''}`}
+          className={`board-widget widget-${widget.id}${selected === widget.id ? ' is-selected' : ''}`}
           data-widget={widget.id}
           tabIndex={editor ? 0 : undefined}
           onClick={() => editor && onSelect?.(widget.id)}
