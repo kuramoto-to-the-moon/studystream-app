@@ -34,6 +34,8 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const { state, displaySession, now, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
   const [obsCopyState, setObsCopyState] = useState<CopyState>('idle');
+  const [obsDialogOpen, setObsDialogOpen] = useState(false);
+  const obsDialogRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDetailsElement>(null);
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = window.localStorage.getItem('studystream-app-theme');
@@ -57,6 +59,13 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     document.addEventListener('pointerdown', closeSettingsOnOutsideClick);
     return () => document.removeEventListener('pointerdown', closeSettingsOnOutsideClick);
   }, []);
+
+  useEffect(() => {
+    const dialog = obsDialogRef.current;
+    if (!dialog) return;
+    if (obsDialogOpen && !dialog.open) dialog.showModal();
+    if (!obsDialogOpen && dialog.open) dialog.close();
+  }, [obsDialogOpen]);
 
   if (!state || !displaySession) return null;
 
@@ -116,13 +125,13 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           <div className="header-actions">
             <button
               type="button"
-              className={`header-obs-button${obsCopyState !== 'idle' ? ` ${obsCopyState}` : ''}`}
-              title={obsCopyState === 'copied' ? 'OBS URLをコピーしました' : obsCopyState === 'failed' ? 'コピーできませんでした' : 'OBS URLをコピー'}
-              aria-live="polite"
-              onClick={() => void copyObsUrl()}
+              className="header-obs-button"
+              title="OBSへの追加方法を開く"
+              aria-label="OBSへの追加方法を開く"
+              onClick={() => setObsDialogOpen(true)}
             >
-              <span>{obsCopyState === 'copied' ? 'コピー済み' : obsCopyState === 'failed' ? 'コピー失敗' : 'OBS URLをコピー'}</span>
-              <small>推奨サイズ {obsSize.width} × {obsSize.height}</small>
+              <ObsLogo />
+              <span>OBS</span>
             </button>
             <details ref={settingsRef} className="app-settings">
             <summary>
@@ -153,6 +162,56 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
         </div>
       </header>
 
+      <dialog
+        ref={obsDialogRef}
+        className="obs-dialog"
+        aria-labelledby="obs-dialog-title"
+        onClose={() => setObsDialogOpen(false)}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) setObsDialogOpen(false);
+        }}
+      >
+        <div className="obs-dialog-content">
+          <div className="obs-dialog-heading">
+            <span className="obs-dialog-logo" aria-hidden="true"><ObsLogo /></span>
+            <div>
+              <h2 id="obs-dialog-title">OBSに配信ボードを追加</h2>
+              <p>ブラウザソースとして追加すると、StudyStreamの表示がそのまま反映されます。</p>
+            </div>
+            <button type="button" className="obs-dialog-close" aria-label="閉じる" onClick={() => setObsDialogOpen(false)}>×</button>
+          </div>
+
+          <ol className="obs-steps">
+            <li><span>1</span><div><strong>OBSでソースを追加</strong><p>「ソース」の＋を押し、「ブラウザ」を選びます。</p></div></li>
+            <li><span>2</span><div><strong>URLを設定</strong><p>下のURLをブラウザソースのURL欄へ貼り付けます。</p></div></li>
+            <li><span>3</span><div><strong>幅と高さを設定</strong><p>現在のボードに合う推奨サイズを入力します。</p></div></li>
+          </ol>
+
+          <div className="obs-setup-values">
+            <div className="obs-url-field">
+              <span>URL</span>
+              <code>{OBS_OVERLAY_URL}</code>
+              <button
+                type="button"
+                className={obsCopyState}
+                aria-live="polite"
+                onClick={() => void copyObsUrl()}
+              >
+                {obsCopyState === 'copied' ? 'コピーしました' : obsCopyState === 'failed' ? 'コピー失敗' : 'URLをコピー'}
+              </button>
+            </div>
+            <div className="obs-size-fields" aria-label={`推奨サイズ 幅${obsSize.width} 高さ${obsSize.height}`}>
+              <div><span>幅</span><strong>{obsSize.width}</strong></div>
+              <span aria-hidden="true">×</span>
+              <div><span>高さ</span><strong>{obsSize.height}</strong></div>
+            </div>
+            <p className="obs-size-note">表示内容やレイアウトを変えると、推奨サイズも自動で更新されます。</p>
+          </div>
+
+          <p className="obs-dialog-footnote">StudyStreamを起動したまま、OBSと同じ端末で使用してください。</p>
+        </div>
+      </dialog>
+
       {page === 'control' ? (
         <ControlPage state={state} session={displaySession} now={now} actions={actions} />
       ) : (
@@ -165,6 +224,16 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
         />
       )}
     </div>
+  );
+}
+
+function ObsLogo() {
+  return (
+    <svg className="obs-logo" aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M12 5.8a5.25 5.25 0 0 1 4.55 7.88M17.42 14.9a5.25 5.25 0 0 1-9.1.05M7.45 13.68A5.25 5.25 0 0 1 12 5.8" />
+      <circle cx="12" cy="12" r="2.35" />
+    </svg>
   );
 }
 
