@@ -131,7 +131,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               onClick={() => setObsDialogOpen(true)}
             >
               <ObsLogo />
-              <span>OBS</span>
+              <span>OBSへ追加</span>
             </button>
             <details ref={settingsRef} className="app-settings">
             <summary>
@@ -189,7 +189,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
 
           <div className="obs-setup-values">
             <div className="obs-url-field">
-              <span>URL</span>
+              <span>ブラウザソースURL</span>
               <code>{OBS_OVERLAY_URL}</code>
               <button
                 type="button"
