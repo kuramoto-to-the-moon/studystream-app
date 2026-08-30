@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
 import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
@@ -34,6 +34,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const { state, displaySession, now, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
   const [obsCopyState, setObsCopyState] = useState<CopyState>('idle');
+  const settingsRef = useRef<HTMLDetailsElement>(null);
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = window.localStorage.getItem('studystream-app-theme');
     if (savedTheme) return savedTheme === 'dark';
@@ -44,6 +45,18 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
     window.localStorage.setItem('studystream-app-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  useEffect(() => {
+    function closeSettingsOnOutsideClick(event: PointerEvent) {
+      const settings = settingsRef.current;
+      if (settings?.open && event.target instanceof Node && !settings.contains(event.target)) {
+        settings.open = false;
+      }
+    }
+
+    document.addEventListener('pointerdown', closeSettingsOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeSettingsOnOutsideClick);
+  }, []);
 
   if (!state || !displaySession) return null;
 
@@ -108,7 +121,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
             >
               {obsCopyState === 'copied' ? 'コピー済み' : obsCopyState === 'failed' ? 'コピー失敗' : 'OBS URLをコピー'}
             </button>
-            <details className="app-settings">
+            <details ref={settingsRef} className="app-settings">
             <summary>
               <svg aria-hidden="true" viewBox="0 0 20 20">
                 <path d="M3 5h4m3 0h7M3 10h9m3 0h2M3 15h2m3 0h9" />
@@ -321,7 +334,7 @@ function EditorPage({
       <aside className="panel inspector">
         <div className="inspector-tabs">
           <button className={section === 'widget' ? 'active' : ''} onClick={() => setSection('widget')}>表示内容</button>
-          <button className={section === 'message' ? 'active' : ''} onClick={() => setSection('message')}>状態メッセージ</button>
+          <button className={section === 'message' ? 'active' : ''} onClick={() => setSection('message')}>メッセージ</button>
           <button className={section === 'appearance' ? 'active' : ''} onClick={() => setSection('appearance')}>色・レイアウト</button>
         </div>
 
@@ -331,24 +344,6 @@ function EditorPage({
               <h2>表示内容</h2>
               <p>視聴者に見せる情報を選びます</p>
             </div>
-            <section className="settings-section">
-              <div className="settings-section-heading"><strong>配信表示の言語</strong><span>ラベルと時間表記が変わります</span></div>
-              <select
-                className="language-select"
-                aria-label="配信表示の言語"
-                value={state.settings.language}
-                onChange={(event) => patchSettings({ language: event.target.value as 'ja' | 'en' })}
-              >
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-              </select>
-            </section>
-            <section className="settings-section">
-              <label className="feature-toggle-row">
-                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日の配信外学習を視聴者へ伝えます</small></span>
-                <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
-              </label>
-            </section>
             <section className="settings-section" aria-label="基本表示">
               <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
@@ -411,14 +406,32 @@ function EditorPage({
               <summary><span><strong>継続項目</strong><small>継続日数や回数を管理</small></span><span aria-hidden="true">開く</span></summary>
               <StreakEditor state={state} patchState={patchState} />
             </details>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>配信表示の言語</strong><span>ラベルと時間表記が変わります</span></div>
+              <select
+                className="language-select"
+                aria-label="配信表示の言語"
+                value={state.settings.language}
+                onChange={(event) => patchSettings({ language: event.target.value as 'ja' | 'en' })}
+              >
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
+            </section>
+            <section className="settings-section">
+              <label className="feature-toggle-row">
+                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日の配信外学習を視聴者へ伝えます</small></span>
+                <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
+              </label>
+            </section>
           </div>
         )}
 
         {section === 'message' && (
           <div className="inspector-content">
             <div className="inspector-page-heading">
-              <h2>状態メッセージ</h2>
-              <p>状態ごとに視聴者へ表示する文を設定します</p>
+              <h2>メッセージ</h2>
+              <p>状態ごとの文と、常時表示する注記を設定します</p>
             </div>
             <div className="message-state-grid">
               {(['study', 'paused', 'break', 'idle'] as const).map((messageKey) => (
