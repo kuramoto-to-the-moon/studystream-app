@@ -367,15 +367,12 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: 4px;
   font-size: 12px;
   font-weight: 750;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
 }
-.button svg { width: 16px; height: 16px; flex: 0 0 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
-.button > span { min-width: 4em; line-height: 16px; text-align: left; }
 .button:hover:not(:disabled) { background: var(--surface-hover); }
 .button.active { border-color: var(--ink); background: var(--active-soft); color: var(--ink); }
 .button.active:hover:not(:disabled) { background: var(--active-soft); }
