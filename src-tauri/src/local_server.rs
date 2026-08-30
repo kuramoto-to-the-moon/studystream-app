@@ -173,7 +173,8 @@ fn default_state() -> Value {
             "sessionSeconds": 0,
             "todaySeconds": 0,
             "totalSeconds": 0,
-            "dayKey": ""
+            "dayKey": "",
+            "dailySeconds": {}
         },
         "settings": {
             "studyMinutes": 30,
@@ -184,6 +185,7 @@ fn default_state() -> Value {
             "backgroundOpacity": 0.9,
             "textColor": "#ffffff",
             "textOpacity": 1.0,
+            "metricKinds": { "session": "session", "today": "today", "streaks": "streaks" },
             "messages": {
                 "study": "集中しています。コメントは休憩中に読みます。",
                 "paused": "少し会話しています。学習タイマーは一時停止中です。",

@@ -2,6 +2,8 @@ export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
 export type WidgetId = 'state' | 'timer' | 'message' | 'session' | 'today' | 'streaks';
+export type MetricWidgetId = 'session' | 'today' | 'streaks';
+export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'session', 'today', 'streaks'];
 
@@ -16,6 +18,7 @@ export interface SessionState {
   todaySeconds: number;
   totalSeconds: number;
   dayKey: string;
+  dailySeconds?: Record<string, number>;
 }
 
 export interface WidgetConfig {
@@ -42,6 +45,7 @@ export interface Settings {
   backgroundOpacity: number;
   textColor: string;
   textOpacity?: number;
+  metricKinds?: Record<MetricWidgetId, MetricKind>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
   streaks: Streak[];
@@ -103,6 +107,33 @@ export const uiCopy = {
   },
 } as const;
 
+export const metricLabels: Record<Language, Record<MetricKind, string>> = {
+  ja: {
+    session: '今回の学習',
+    today: '今日',
+    week: '今週',
+    month: '今月',
+    year: '今年',
+    total: '累計',
+    streaks: '継続項目',
+  },
+  en: {
+    session: 'This session',
+    today: 'Today',
+    week: 'This week',
+    month: 'This month',
+    year: 'This year',
+    total: 'Total',
+    streaks: 'Streak',
+  },
+};
+
+export const defaultMetricKinds: Record<MetricWidgetId, MetricKind> = {
+  session: 'session',
+  today: 'today',
+  streaks: 'streaks',
+};
+
 export function phaseKey(session: SessionState) {
   if (session.phase === 'study' && !session.tracking) return 'paused' as const;
   return session.phase;
@@ -111,9 +142,10 @@ export function phaseKey(session: SessionState) {
 export function materializeSession(session: SessionState, now = Date.now()): SessionState {
   const currentDay = localDayKey(now);
   const storedDay = session.dayKey || currentDay;
+  const dailySeconds = session.dailySeconds ?? (session.totalSeconds > 0 ? { [currentDay]: session.totalSeconds } : {});
   const normalized = storedDay === currentDay
-    ? { ...session, dayKey: currentDay }
-    : { ...session, dayKey: currentDay, todaySeconds: 0 };
+    ? { ...session, dayKey: currentDay, dailySeconds }
+    : { ...session, dayKey: currentDay, todaySeconds: 0, dailySeconds };
   if (normalized.phase !== 'study' || !normalized.tracking) return normalized;
   const elapsed = Math.max(0, Math.floor((now - session.lastCheckpointAt) / 1000));
   if (!elapsed) return normalized;
@@ -123,6 +155,10 @@ export function materializeSession(session: SessionState, now = Date.now()): Ses
     sessionSeconds: normalized.sessionSeconds + elapsed,
     todaySeconds: normalized.todaySeconds + elapsed,
     totalSeconds: normalized.totalSeconds + elapsed,
+    dailySeconds: {
+      ...normalized.dailySeconds,
+      [currentDay]: (normalized.dailySeconds?.[currentDay] ?? 0) + elapsed,
+    },
   };
 }
 
@@ -157,6 +193,30 @@ export function formatDuration(seconds: number, language: Language) {
   const minutes = Math.floor((safe % 3600) / 60);
   if (language === 'en') return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return hours > 0 ? `${hours}時間${minutes}分` : `${minutes}分`;
+}
+
+export function metricSeconds(session: SessionState, kind: Exclude<MetricKind, 'streaks'>, now = Date.now()) {
+  if (kind === 'session') return session.sessionSeconds;
+  if (kind === 'today') return session.todaySeconds;
+  if (kind === 'total') return session.totalSeconds;
+
+  const date = new Date(now);
+  const year = String(date.getFullYear());
+  const month = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  let start = '';
+  if (kind === 'year') start = `${year}-01-01`;
+  if (kind === 'month') start = `${month}-01`;
+  if (kind === 'week') {
+    const monday = new Date(date);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    start = localDayKey(monday.getTime());
+  }
+  const end = localDayKey(now);
+  return Object.entries(session.dailySeconds ?? {}).reduce(
+    (total, [day, seconds]) => total + (day >= start && day <= end ? seconds : 0),
+    0,
+  );
 }
 
 export function streakDays(startedOn: string) {

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Board } from './Board';
-import type { AppState, Streak, WidgetId } from './model';
-import { formatClock, formatDuration, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import type { AppState, MetricKind, MetricWidgetId, Streak, WidgetId } from './model';
+import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -174,8 +174,7 @@ function EditorPage({
 }) {
   const language = state.settings.language;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
-
-  const visibleCount = useMemo(() => state.settings.widgets.filter((widget) => widget.visible).length, [state.settings.widgets]);
+  const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
 
   return (
     <main className="page editor-page">
@@ -209,9 +208,9 @@ function EditorPage({
         {section === 'widget' && (
           <div className="inspector-content">
             <div className="visibility-panel" aria-label="表示・非表示">
-              <div className="visibility-heading"><strong>表示・非表示</strong><span>{visibleCount}/6</span></div>
+              <div className="visibility-heading"><strong>上段の表示</strong><span>状態・時間・文言</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
                     <span>{widgetLabels[language][widget.id]}</span>
                     <input
@@ -232,12 +231,49 @@ function EditorPage({
                 ))}
               </div>
             </div>
-            <div className="selected-item-settings">
-              <p className="eyebrow">選択中の項目</p>
-              <h2>{widgetLabels[language][selected]}</h2>
-              {selected === 'streaks'
-                ? <StreakEditor state={state} patchState={patchState} />
-                : <p className="empty-settings">この項目は表示・非表示だけ変更できます。</p>}
+            <div className="metric-slot-settings">
+              <p className="eyebrow">メッセージ下の表示</p>
+              <h2>集計ウィジェット</h2>
+              <p className="settings-note">最大3枠。表示する数に合わせて横幅が自動調整されます。</p>
+              <div className="metric-slot-list">
+                {metricSlotIds.map((slotId, index) => {
+                  const widget = state.settings.widgets.find((item) => item.id === slotId);
+                  return (
+                    <div className="metric-slot-row" key={slotId}>
+                      <input
+                        type="checkbox"
+                        aria-label={`下段${index + 1}を表示`}
+                        checked={widget?.visible ?? true}
+                        onChange={(event) => {
+                          const visible = event.target.checked;
+                          patchState((current) => ({
+                            ...current,
+                            settings: {
+                              ...current.settings,
+                              widgets: current.settings.widgets.map((item) => item.id === slotId ? { ...item, visible } : item),
+                            },
+                          }));
+                          if (visible) onSelect(slotId);
+                        }}
+                      />
+                      <span>枠 {index + 1}</span>
+                      <select
+                        aria-label={`下段${index + 1}の内容`}
+                        value={metricKinds[slotId]}
+                        onChange={(event) => patchSettings({
+                          metricKinds: { ...metricKinds, [slotId]: event.target.value as MetricKind },
+                        })}
+                      >
+                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[language][kind]}</option>)}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+              <details className="streak-manager">
+                <summary>継続項目を管理</summary>
+                <StreakEditor state={state} patchState={patchState} />
+              </details>
             </div>
           </div>
         )}
@@ -379,6 +415,9 @@ const messageLabels = {
   ja: { study: '学習中', paused: '一時停止中', break: '休憩中', idle: '待機中' },
   en: { study: 'Studying', paused: 'Paused', break: 'On break', idle: 'Ready' },
 } as const;
+
+const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks'];
+const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="field"><span>{label}</span>{children}</label>;

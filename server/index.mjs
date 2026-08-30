@@ -26,6 +26,7 @@ const initialState = {
     todaySeconds: 0,
     totalSeconds: 0,
     dayKey: new Date().toLocaleDateString('en-CA'),
+    dailySeconds: {},
   },
   settings: {
     studyMinutes: 30,
@@ -36,6 +37,7 @@ const initialState = {
     backgroundOpacity: 0.9,
     textColor: '#ffffff',
     textOpacity: 1,
+    metricKinds: { session: 'session', today: 'today', streaks: 'streaks' },
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',
       paused: '少し会話しています。学習タイマーは一時停止中です。',

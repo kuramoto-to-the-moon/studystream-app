@@ -423,6 +423,33 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .visibility-list label:first-child { border-top: 0; }
 .visibility-list input { width: 16px; height: 16px; accent-color: #111; }
 .selected-item-settings { padding-top: 20px; }
+.metric-slot-settings { padding-top: 22px; }
+.metric-slot-settings h2 { margin-bottom: 20px; }
+.metric-slot-list { margin-top: 16px; border: 1px solid #ccc; border-radius: 7px; overflow: hidden; }
+.metric-slot-row {
+  min-height: 46px;
+  border-top: 1px solid #e1e1e1;
+  padding: 6px 9px;
+  display: grid;
+  grid-template-columns: auto 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.metric-slot-row:first-child { border-top: 0; }
+.metric-slot-row > input { width: 16px; height: 16px; accent-color: #111; }
+.metric-slot-row > span { color: #666; font-size: 10px; font-weight: 700; }
+.metric-slot-row > select {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  padding: 0 7px;
+  background: #fff;
+  color: #111;
+  font-size: 11px;
+}
+.streak-manager { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.streak-manager summary { color: #444; font-size: 11px; font-weight: 750; cursor: pointer; }
 .field { margin-top: 18px; display: flex; flex-direction: column; gap: 9px; }
 .field > span { color: #555; font-size: 11px; font-weight: 700; }
 .field input:not([type="range"]):not([type="color"]), .field select, .field textarea {

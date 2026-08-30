@@ -1,13 +1,15 @@
 import type { CSSProperties } from 'react';
-import type { AppState, SessionState, WidgetId } from './model';
+import type { AppState, MetricKind, SessionState, WidgetId } from './model';
 import {
+  defaultMetricKinds,
   formatClock,
   formatDuration,
+  metricLabels,
+  metricSeconds,
   phaseKey,
   remainingSeconds,
   streakDays,
   uiCopy,
-  widgetLabels,
   widgetOrder,
 } from './model';
 
@@ -45,6 +47,27 @@ export function Board({
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible)
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
+  const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
+
+  const metricContent = (kind: MetricKind) => kind === 'streaks' ? (
+    <span className="board-metric board-streak">
+      <span>{currentStreak?.name || metricLabels[language].streaks}</span>
+      <strong>
+        {currentStreak
+          ? currentStreak.kind === 'count'
+            ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
+            : streakDays(currentStreak.startedOn || '') < 0
+              ? copy.beforeStart
+              : `${streakDays(currentStreak.startedOn || '')}${language === 'ja' ? copy.days : ` ${copy.days}`}`
+          : '—'}
+      </strong>
+    </span>
+  ) : (
+    <span className="board-metric">
+      <span>{metricLabels[language][kind]}</span>
+      <strong>{formatDuration(metricSeconds(session, kind, now), language)}</strong>
+    </span>
+  );
 
   const content: Record<WidgetId, React.ReactNode> = {
     state: <strong className="board-state">{copy[key]}</strong>,
@@ -55,32 +78,9 @@ export function Board({
       </span>
     ),
     message: <span className="board-message" title={message}>{message}</span>,
-    session: (
-      <span className="board-metric">
-        <span>{copy.session}</span>
-        <strong>{formatDuration(session.sessionSeconds, language)}</strong>
-      </span>
-    ),
-    today: (
-      <span className="board-metric">
-        <span>{copy.today}</span>
-        <strong>{formatDuration(session.todaySeconds, language)}</strong>
-      </span>
-    ),
-    streaks: (
-      <span className="board-metric board-streak">
-        <span>{currentStreak?.name || widgetLabels[language].streaks}</span>
-        <strong>
-          {currentStreak
-            ? currentStreak.kind === 'count'
-              ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
-              : streakDays(currentStreak.startedOn || '') < 0
-                ? copy.beforeStart
-                : `${streakDays(currentStreak.startedOn || '')}${language === 'ja' ? copy.days : ` ${copy.days}`}`
-            : '—'}
-        </strong>
-      </span>
-    ),
+    session: metricContent(metricKinds.session),
+    today: metricContent(metricKinds.today),
+    streaks: metricContent(metricKinds.streaks),
   };
 
   const renderWidget = (widget: (typeof visibleWidgets)[number]) => (
