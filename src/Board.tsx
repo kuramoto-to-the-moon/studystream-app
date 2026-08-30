@@ -46,7 +46,7 @@ export function Board({
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
       && (widget.id !== 'note' || note.length > 0)
-      && (widget.id !== 'offstream' || offstreamTodaySeconds > 0))
+      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0)))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
   const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
 

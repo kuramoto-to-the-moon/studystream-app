@@ -49,6 +49,7 @@ export interface Settings {
   textColor: string;
   textOpacity?: number;
   note?: string;
+  offstreamEnabled?: boolean;
   metricKinds?: Record<MetricWidgetId, MetricKind>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];

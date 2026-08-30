@@ -40,6 +40,7 @@ const initialState = {
     textColor: '#ffffff',
     textOpacity: 1,
     note: '',
+    offstreamEnabled: false,
     metricKinds: { session: 'session', today: 'today', streaks: 'streaks' },
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',

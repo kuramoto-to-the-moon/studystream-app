@@ -230,7 +230,7 @@ function ControlPage({
           <div><strong>{formatDuration(session.totalSeconds, 'ja')}</strong><span>{copy.total}</span></div>
         </div>
       </section>
-      <details className="panel offstream-panel">
+      {state.settings.offstreamEnabled && <details className="panel offstream-panel">
         <summary>
           <span><strong>配信外の学習を追加</strong><small>{(session.offstreamTodaySeconds ?? 0) > 0 ? `今日は${formatDuration(session.offstreamTodaySeconds ?? 0, 'ja')}を視聴者に表示中` : '視聴者表示と今日・各期間の集計へ反映します'}</small></span>
           <span aria-hidden="true">開く</span>
@@ -240,7 +240,7 @@ function ControlPage({
           <label><span>分</span><input type="number" min="0" max="59" step="1" inputMode="numeric" value={offstreamMinutes} onChange={(event) => setOffstreamMinutes(event.target.value)} /></label>
           <button type="submit" disabled={!offstreamSeconds}>{offstreamAdded ? '追加しました' : '学習時間に追加'}</button>
         </form>
-      </details>
+      </details>}
     </main>
   );
 }
@@ -262,9 +262,19 @@ function EditorPage({
   const interfaceLanguage = 'ja' as const;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [widePreview, setWidePreview] = useState(() => window.matchMedia('(min-width: 1100px)').matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
   const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
   const currentMessageKey = phaseKey(session);
+  const showPreview = widePreview || previewOpen;
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1100px)');
+    const updatePreviewMode = () => setWidePreview(media.matches);
+    updatePreviewMode();
+    media.addEventListener('change', updatePreviewMode);
+    return () => media.removeEventListener('change', updatePreviewMode);
+  }, []);
 
   function changeMetricKind(slotId: MetricWidgetId, nextKind: MetricKind) {
     const previousKind = metricKinds[slotId];
@@ -275,19 +285,19 @@ function EditorPage({
   }
 
   return (
-    <main className={`page editor-page${previewOpen ? '' : ' preview-hidden'}`}>
+    <main className={`page editor-page${showPreview ? '' : ' preview-hidden'}`}>
       <header className="editor-page-header page-heading">
         <div className="editor-title-row">
           <div>
             <h1>ボード編集</h1>
             <p>視聴者に表示する内容と見た目を調整します</p>
           </div>
-          <button type="button" className="preview-toggle-button" onClick={() => setPreviewOpen((open) => !open)}>
+          {!widePreview && <button type="button" className="preview-toggle-button" onClick={() => setPreviewOpen((open) => !open)}>
             {previewOpen ? 'プレビューを閉じる' : 'プレビューを表示'}
-          </button>
+          </button>}
         </div>
       </header>
-      {previewOpen && <section className="panel editor-preview-panel">
+      {showPreview && <section className="panel editor-preview-panel">
         <div className="preview-card-heading">
           <h2>視聴者表示プレビュー</h2>
           <span>OBSに表示される画面</span>
@@ -326,10 +336,17 @@ function EditorPage({
                 <option value="en">English</option>
               </select>
             </section>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>配信外の学習</strong><span>今日の配信外学習を視聴者へ表示する機能</span></div>
+              <label className="feature-toggle-row">
+                <span><strong>この機能を使う</strong><small>オンにするとホームに時間入力が表示されます</small></span>
+                <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
+              </label>
+            </section>
             <section className="settings-section" aria-label="基本表示">
               <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id) && (widget.id !== 'offstream' || state.settings.offstreamEnabled)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <input
