@@ -40,6 +40,9 @@ export function Board({
   const currentStreak = visibleStreaks.length > 0
     ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
     : undefined;
+  const currentStreakDays = currentStreak && currentStreak.kind !== 'count'
+    ? streakDays(currentStreak.startedOn || '', currentStreak.dayMode, currentStreak.includedWeekdays)
+    : 0;
   const boardStyle = {
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
@@ -56,9 +59,9 @@ export function Board({
         {currentStreak
           ? currentStreak.kind === 'count'
             ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
-            : streakDays(currentStreak.startedOn || '') < 0
+            : currentStreakDays < 0
               ? copy.beforeStart
-              : `${streakDays(currentStreak.startedOn || '')}${language === 'ja' ? copy.days : ` ${copy.days}`}`
+              : `${currentStreakDays}${language === 'ja' ? copy.days : ` ${copy.days}`}`
           : '—'}
       </strong>
     </span>

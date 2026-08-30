@@ -33,6 +33,8 @@ export interface Streak {
   startedOn?: string;
   count?: number;
   unit?: string;
+  dayMode?: 'all' | 'weekdays' | 'weekends' | 'custom';
+  includedWeekdays?: number[];
   visible: boolean;
 }
 
@@ -62,7 +64,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: '状態',
     timer: '残り時間',
     message: 'メッセージ',
-    session: '今回の学習',
+    session: '今回の学習時間',
     today: '今日',
     streaks: '継続項目',
   },
@@ -70,7 +72,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: 'Status',
     timer: 'Time left',
     message: 'Message',
-    session: 'This session',
+    session: 'Session time',
     today: 'Today',
     streaks: 'Streak',
   },
@@ -85,7 +87,7 @@ export const uiCopy = {
     tracking: '学習時間を計測中',
     notTracking: '学習タイマーは一時停止中',
     remaining: '残り時間',
-    session: '今回の学習',
+    session: '今回の学習時間',
     today: '今日',
     total: '累計',
     days: '日',
@@ -99,7 +101,7 @@ export const uiCopy = {
     tracking: 'Study time is running',
     notTracking: 'Study time is paused',
     remaining: 'Time left',
-    session: 'This session',
+    session: 'Session time',
     today: 'Today',
     total: 'Total',
     days: 'days',
@@ -109,7 +111,7 @@ export const uiCopy = {
 
 export const metricLabels: Record<Language, Record<MetricKind, string>> = {
   ja: {
-    session: '今回の学習',
+    session: '今回の学習時間',
     today: '今日',
     week: '今週',
     month: '今月',
@@ -118,7 +120,7 @@ export const metricLabels: Record<Language, Record<MetricKind, string>> = {
     streaks: '継続項目',
   },
   en: {
-    session: 'This session',
+    session: 'Session time',
     today: 'Today',
     week: 'This week',
     month: 'This month',
@@ -219,10 +221,29 @@ export function metricSeconds(session: SessionState, kind: Exclude<MetricKind, '
   );
 }
 
-export function streakDays(startedOn: string) {
+export function streakDays(
+  startedOn: string,
+  dayMode: Streak['dayMode'] = 'all',
+  includedWeekdays: number[] = [],
+) {
   const start = new Date(`${startedOn}T00:00:00`);
   if (Number.isNaN(start.getTime())) return 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return Math.floor((today.getTime() - start.getTime()) / 86_400_000);
+  if (start > today) return -1;
+  let count = 0;
+  const cursor = new Date(start);
+  while (cursor < today) {
+    cursor.setDate(cursor.getDate() + 1);
+    const weekday = cursor.getDay();
+    const included = dayMode === 'weekdays'
+      ? weekday >= 1 && weekday <= 5
+      : dayMode === 'weekends'
+        ? weekday === 0 || weekday === 6
+        : dayMode === 'custom'
+          ? includedWeekdays.includes(weekday)
+          : true;
+    if (included) count += 1;
+  }
+  return count;
 }

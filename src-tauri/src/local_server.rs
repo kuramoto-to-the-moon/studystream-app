@@ -201,7 +201,7 @@ fn default_state() -> Value {
                 { "id": "streaks", "visible": true }
             ],
             "streaks": [
-                { "id": "smoke-free", "name": "禁煙", "kind": "days", "startedOn": "2026-07-13", "visible": true }
+                { "id": "smoke-free", "name": "禁煙", "kind": "days", "startedOn": "2026-07-13", "dayMode": "all", "visible": true }
             ]
         }
     })

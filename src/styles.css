@@ -509,7 +509,7 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .add-streak-button:hover { border-color: #111; background: #f3f3f1; }
 .streak-list { border: 1px solid #ccc; border-radius: 7px; overflow: hidden; }
 .streak-list-row {
-  min-height: 46px;
+  min-height: 40px;
   border-top: 1px solid #e1e1e1;
   padding-right: 10px;
   display: grid;
@@ -521,9 +521,9 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .streak-list-row.active { background: #f1f1ef; }
 .streak-list-row > button {
   min-width: 0;
-  min-height: 45px;
+  min-height: 39px;
   border: 0;
-  padding: 7px 10px;
+  padding: 5px 9px;
   background: transparent;
   display: flex;
   flex-direction: column;
@@ -536,11 +536,41 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .streak-list-row > button strong { max-width: 100%; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .streak-list-row > button small { color: #777; font-size: 9px; }
 .streak-list-row > input { width: 16px; height: 16px; accent-color: #111; }
-.streak-detail { margin-top: 18px; padding-top: 2px; border-top: 1px solid var(--line); }
-.count-fields { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; }
-.count-actions { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.streak-detail { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.streak-core-fields { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(96px, 1fr); gap: 8px; }
+.streak-day-fields, .count-fields { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compact-field { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.compact-field > span { color: #666; font-size: 9px; font-weight: 700; }
+.compact-field input, .compact-field select {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  padding: 0 8px;
+  background: #fff;
+  color: #111;
+  font-size: 10px;
+}
+.weekday-picker { margin-top: 9px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.weekday-picker label { cursor: pointer; }
+.weekday-picker input { position: absolute; opacity: 0; pointer-events: none; }
+.weekday-picker span {
+  min-height: 28px;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  color: #666;
+  background: #fff;
+  font-size: 9px;
+  font-weight: 750;
+}
+.weekday-picker label.active span { border-color: #111; background: #111; color: #fff; }
+.weekday-picker input:focus-visible + span { outline: 2px solid #111; outline-offset: 2px; }
+.count-actions { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .count-actions button {
-  min-height: 34px;
+  min-height: 30px;
   border: 1px solid #aaa;
   border-radius: 6px;
   background: #fff;
@@ -550,7 +580,7 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 }
 .count-actions button:hover { border-color: #111; background: #f3f3f1; }
 .remove-streak-button {
-  margin-top: 22px;
+  margin-top: 16px;
   border: 0;
   padding: 0;
   background: transparent;
