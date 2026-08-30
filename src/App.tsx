@@ -337,9 +337,8 @@ function EditorPage({
               </select>
             </section>
             <section className="settings-section">
-              <div className="settings-section-heading"><strong>配信外の学習</strong><span>今日の配信外学習を視聴者へ表示する機能</span></div>
               <label className="feature-toggle-row">
-                <span><strong>この機能を使う</strong><small>オンにするとホームに時間入力が表示されます</small></span>
+                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日の配信外学習を視聴者へ伝えます</small></span>
                 <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
               </label>
             </section>

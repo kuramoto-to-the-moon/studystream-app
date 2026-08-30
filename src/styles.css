@@ -535,9 +535,8 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .inspector {
   position: sticky;
   top: 92px;
-  max-height: calc(100vh - 112px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  align-self: start;
+  overflow: visible;
 }
 .inspector-tabs {
   position: sticky;
@@ -664,9 +663,9 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .field input[type="color"] { width: 100%; height: 42px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 4px; background: var(--field); }
 .settings-section > .field { margin-top: 12px; }
 .settings-section .color-fields .field { margin-top: 0; }
-.segmented { padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-muted); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.segmented { padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
 .segmented button { min-height: 34px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; }
-.segmented button.active { background: var(--accent); color: var(--accent-foreground); }
+.segmented button.active { background: var(--active-soft); color: var(--ink); font-weight: 800; }
 .switch-row { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .switch-row > span { display: flex; flex-direction: column; gap: 5px; }
 .switch-row strong { font-size: 12px; }
