@@ -136,7 +136,7 @@ function ControlPage({
             学習
           </button>
           <button type="button" className={`button${session.phase === 'study' && !session.tracking ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
-            計測停止
+            一時停止
           </button>
           <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
             休憩
@@ -148,9 +148,6 @@ function ControlPage({
           <div><strong>{formatDuration(session.todaySeconds, state.settings.language)}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
         </div>
-        {session.phase !== 'idle' && (
-          <button type="button" className="finish-session" onClick={actions.finish}>現在のセッションを終了</button>
-        )}
         <div className="control-utilities">
           <button type="button" className="open-editor-button" onClick={onEdit}>
             <span><strong>ボード編集</strong><small>色・文字・表示項目を変更</small></span>
@@ -159,6 +156,11 @@ function ControlPage({
           <button type="button" className="copy-obs-button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
             OBS URLをコピー
           </button>
+          {session.phase !== 'idle' && (
+            <button type="button" className="session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
+              セッション終了
+            </button>
+          )}
         </div>
       </section>
     </main>
@@ -214,28 +216,6 @@ function EditorPage({
             onSelect={onSelect}
           />
         </div>
-        <div className="widget-visibility-row" aria-label="表示する項目">
-          {[...state.settings.widgets].sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
-            <label key={widget.id} className={widget.visible ? 'enabled' : ''}>
-              <input
-                type="checkbox"
-                checked={widget.visible}
-                onChange={(event) => {
-                  patchState((current) => ({
-                    ...current,
-                    settings: {
-                      ...current.settings,
-                      widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: event.target.checked } : item),
-                    },
-                  }));
-                  if (event.target.checked) onSelect(widget.id);
-                }}
-              />
-              {widgetLabels[language][widget.id]}
-            </label>
-          ))}
-          <span>{visibleCount}/6 表示</span>
-        </div>
       </section>
 
       <aside className="panel inspector">
@@ -247,6 +227,31 @@ function EditorPage({
 
         {section === 'widget' && (
           <div className="inspector-content">
+            <div className="visibility-panel" aria-label="表示・非表示">
+              <div className="visibility-heading"><strong>表示・非表示</strong><span>{visibleCount}/6</span></div>
+              <div className="visibility-list">
+                {[...state.settings.widgets].sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                  <label key={widget.id}>
+                    <span>{widgetLabels[language][widget.id]}</span>
+                    <input
+                      type="checkbox"
+                      checked={widget.visible}
+                      onChange={(event) => {
+                        patchState((current) => ({
+                          ...current,
+                          settings: {
+                            ...current.settings,
+                            widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: event.target.checked } : item),
+                          },
+                        }));
+                        if (event.target.checked) onSelect(widget.id);
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="selected-item-settings">
             <p className="eyebrow">選択中の項目</p>
             <h2>{widgetLabels[language][selected]}</h2>
             <Field label="文字サイズ">
@@ -258,11 +263,8 @@ function EditorPage({
                 ))}
               </div>
             </Field>
-            <label className="switch-row">
-              <span><strong>ボードに表示</strong><small>非表示にしても設定は残ります</small></span>
-              <input type="checkbox" checked={selectedWidget.visible} onChange={(event) => onUpdateSelected({ visible: event.target.checked })} />
-            </label>
             {selected === 'streaks' && <StreakEditor state={state} patchState={patchState} />}
+            </div>
           </div>
         )}
 
