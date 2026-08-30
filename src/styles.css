@@ -337,10 +337,17 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .app-loading { min-height: 100vh; display: grid; place-items: center; color: #111; font-size: 20px; font-weight: 800; }
 
 /* Board editor */
-.section-heading { min-height: 58px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.section-heading.compact { align-items: center; }
-.section-heading h1 { font-size: 25px; font-weight: 800; }
-.editor-heading-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.editor-page-header {
+  grid-column: 1 / -1;
+  padding: 2px 2px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.editor-page-header > div { display: flex; flex-direction: column; gap: 5px; }
+.editor-page-header h1 { font-size: 20px; line-height: 1.25; font-weight: 800; }
+.editor-page-header p { margin: 0; color: var(--muted); font-size: 11px; }
 .editor-back {
   border: 0;
   padding: 0;
@@ -351,12 +358,14 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
   cursor: pointer;
 }
 .editor-back:hover { color: #111; text-decoration: underline; text-underline-offset: 3px; }
-.helper-text { color: var(--muted); font-size: 11px; }
 .editor-preview-panel { min-width: 0; }
+.preview-card-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.preview-card-heading h2 { font-size: 14px; font-weight: 800; letter-spacing: -.015em; }
+.preview-card-heading span { color: var(--muted); font-size: 10px; }
 .editor-canvas {
   width: 100%;
   min-height: 310px;
-  margin-top: 18px;
+  margin-top: 14px;
   border: 1px solid var(--line);
   padding: 26px;
   display: grid;
@@ -573,7 +582,6 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
   .control-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .button { min-height: 52px; font-size: 13px; }
   .preview-canvas, .editor-canvas { min-height: 220px; padding: 14px; }
-  .section-heading { flex-direction: column; }
 }
 @media (max-width: 480px) {
   .phase-summary { align-items: flex-start; }

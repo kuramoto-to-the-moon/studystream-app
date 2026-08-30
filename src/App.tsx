@@ -178,13 +178,17 @@ function EditorPage({
 
   return (
     <main className="page editor-page">
+      <header className="editor-page-header">
+        <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
+        <div>
+          <h1>ボード編集</h1>
+          <p>視聴者に表示する内容と見た目を調整します</p>
+        </div>
+      </header>
       <section className="panel editor-preview-panel">
-        <div className="section-heading compact">
-          <div className="editor-heading-copy">
-            <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
-            <h1>視聴者表示を直接編集</h1>
-          </div>
-          <span className="helper-text">表示する内容と見た目を調整</span>
+        <div className="preview-card-heading">
+          <h2>視聴者表示プレビュー</h2>
+          <span>OBSに表示される画面</span>
         </div>
         <div className={`preview-canvas editor-canvas preview-${state.settings.layout}`}>
           <Board
