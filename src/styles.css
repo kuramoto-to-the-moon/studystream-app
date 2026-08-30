@@ -15,8 +15,8 @@
   --accent-hover: #202020;
   --accent-foreground: #fff;
   --focus: #707070;
-  --danger: #b42318;
-  --danger-hover: #8f1d14;
+  --danger: #d9363e;
+  --danger-hover: #b9252d;
   --app-bg: #f5f5f4;
   --field: #fff;
   --line-strong: #d8d8d5;
@@ -37,8 +37,8 @@
   --accent-hover: #fff;
   --accent-foreground: #202020;
   --focus: #aaa;
-  --danger: #ff7a73;
-  --danger-hover: #ff9a94;
+  --danger: #ff6b72;
+  --danger-hover: #ff9297;
   --app-bg: #171717;
   --field: #202020;
   --line-strong: #3b3b3b;
@@ -977,14 +977,20 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .remove-streak-button {
   margin-top: 16px;
   border: 0;
-  padding: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
   background: transparent;
   color: var(--danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
-.remove-streak-button:hover { color: var(--danger-hover); }
+.remove-streak-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.remove-streak-button:hover { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger-hover); }
 
 /* Native selects share one quiet, compact treatment across the editor. */
 .inspector select {

@@ -760,7 +760,12 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
               <label className="compact-field"><span>単位</span><input value={streak.unit || ''} maxLength={8} placeholder="回・冊・本" onChange={(event) => change({ unit: event.target.value })} /></label>
             </div>
           )}
-          <button type="button" className="remove-streak-button" onClick={removeItem}>この項目を削除</button>
+          <button type="button" className="remove-streak-button" onClick={removeItem}>
+            <svg aria-hidden="true" viewBox="0 0 20 20">
+              <path d="M4.5 6h11M8 3.75h4M6.2 6l.55 10h6.5l.55-10M8.35 8.5v5M11.65 8.5v5" />
+            </svg>
+            <span>{streak.name.trim() ? `${streak.name.trim()}を削除` : 'この項目を削除'}</span>
+          </button>
         </div>
       )}
     </div>
