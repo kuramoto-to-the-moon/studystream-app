@@ -8,6 +8,8 @@ type Page = 'control' | 'editor';
 type CopyState = 'idle' | 'copied' | 'failed';
 
 const OBS_OVERLAY_URL = 'http://127.0.0.1:47831/overlay';
+const EDITOR_PREVIEW_QUERY = '(min-width: 1050px)';
+const EDITOR_PREVIEW_STORAGE_KEY = 'studystream-editor-preview';
 
 export function App() {
   const overlayOnly = window.location.pathname === '/overlay' || new URLSearchParams(window.location.search).get('view') === 'overlay';
@@ -267,20 +269,24 @@ function EditorPage({
   const viewerLanguage = state.settings.language;
   const interfaceLanguage = 'ja' as const;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [widePreview, setWidePreview] = useState(() => window.matchMedia('(min-width: 1100px)').matches);
+  const [previewOpen, setPreviewOpen] = useState(() => window.localStorage.getItem(EDITOR_PREVIEW_STORAGE_KEY) === 'open');
+  const [widePreview, setWidePreview] = useState(() => window.matchMedia(EDITOR_PREVIEW_QUERY).matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
   const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
   const currentMessageKey = phaseKey(session);
   const showPreview = widePreview || previewOpen;
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1100px)');
+    const media = window.matchMedia(EDITOR_PREVIEW_QUERY);
     const updatePreviewMode = () => setWidePreview(media.matches);
     updatePreviewMode();
     media.addEventListener('change', updatePreviewMode);
     return () => media.removeEventListener('change', updatePreviewMode);
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(EDITOR_PREVIEW_STORAGE_KEY, previewOpen ? 'open' : 'closed');
+  }, [previewOpen]);
 
   function changeMetricKind(slotId: MetricWidgetId, nextKind: MetricKind) {
     const previousKind = metricKinds[slotId];
