@@ -78,9 +78,10 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     <div className="app-shell">
       <header className="app-header">
         <button type="button" className="wordmark" onClick={() => setPage('control')}>StudyStream</button>
-        <nav aria-label="メインナビゲーション">
-          <button className={page === 'control' ? 'active' : ''} onClick={() => setPage('control')}>配信コントロール</button>
-          <button className={page === 'editor' ? 'active' : ''} onClick={() => setPage('editor')}>ボード編集</button>
+        <nav aria-label="画面切り替え">
+          <button className="header-page-action" onClick={() => setPage(page === 'control' ? 'editor' : 'control')}>
+            {page === 'control' ? <>ボード編集 <span aria-hidden="true">→</span></> : <><span aria-hidden="true">←</span> 配信操作へ戻る</>}
+          </button>
         </nav>
         <div className="header-tools">
           <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />

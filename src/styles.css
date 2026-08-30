@@ -40,26 +40,24 @@ textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid #111; outl
   letter-spacing: -.055em;
   cursor: pointer;
 }
-.app-header nav { align-self: stretch; display: flex; align-items: stretch; gap: 28px; }
+.app-header nav { display: flex; align-items: center; justify-content: center; }
 .app-header nav button {
-  position: relative;
-  border: 0;
-  padding: 0 2px;
-  background: transparent;
-  color: #777;
-  font-size: 13px;
+  min-height: 36px;
+  border: 1px solid #bcbcbc;
+  border-radius: 6px;
+  padding: 0 13px;
+  background: #fff;
+  color: #333;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
 }
-.app-header nav button:hover, .app-header nav button.active { color: #111; }
-.app-header nav button.active::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 -1px;
-  height: 2px;
-  background: #111;
-}
+.app-header nav button:hover { border-color: #111; color: #111; }
+.app-header nav button:focus-visible { outline: none; border-color: #111; background: #f4f4f2; }
 .header-tools { justify-self: end; display: flex; align-items: center; gap: 8px; color: #555; font-size: 12px; }
 .header-tools select, .inline-fields select {
   height: 34px;
@@ -183,7 +181,7 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .session-stats strong {
   overflow: hidden;
   color: #111;
-  font-size: clamp(19px, 2vw, 26px);
+  font-size: clamp(18px, 1.7vw, 23px);
   font-weight: 750;
   line-height: 1.1;
   text-overflow: ellipsis;
