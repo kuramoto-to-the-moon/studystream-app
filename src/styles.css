@@ -754,7 +754,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .message-state-grid strong { font-size: 11px; }
 .message-state-grid small { max-width: 100%; overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .message-state-grid button.active small { color: var(--muted); }
-.message-editor-box { max-width: 680px; margin-top: 12px; border: 1px solid var(--line); border-radius: 7px; padding: 12px; background: var(--surface); }
+.message-editor-box { max-width: 680px; margin-top: 12px; }
 .message-editor-box textarea {
   width: 100%;
   min-height: 86px;
