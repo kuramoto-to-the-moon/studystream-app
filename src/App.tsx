@@ -169,12 +169,17 @@ function ControlPage({
   return (
     <main className="page control-page">
       <header className="page-heading">
-        <h1>学習セッション</h1>
+        <h1>現在のセッション</h1>
         <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
       </header>
       <section className="panel session-panel">
-        <div className="panel-heading">
-          <div><h2>現在のセッション</h2><p>操作はOBSの表示にすぐ反映されます</p></div>
+        <div className="session-toolbar">
+          <span>操作はOBSの表示にすぐ反映されます</span>
+          {session.phase !== 'idle' && (
+            <button type="button" className="session-finish-button" onClick={actions.finish}>
+              セッションを終了
+            </button>
+          )}
         </div>
         <div className="phase-summary">
           <div>
@@ -189,7 +194,7 @@ function ControlPage({
           </div>
         </div>
 
-        <div className={`control-actions${session.phase !== 'idle' ? ' has-session' : ''}`} aria-label="配信状態">
+        <div className="control-actions" aria-label="配信状態">
           <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} disabled={isPaused} onClick={enterStudy}>
             学習
           </button>
@@ -199,11 +204,6 @@ function ControlPage({
           <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
             休憩
           </button>
-          {session.phase !== 'idle' && (
-            <button type="button" className="button session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
-              セッション終了
-            </button>
-          )}
         </div>
 
         <div className="session-stats">
