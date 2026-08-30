@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, WidgetId, WidgetSize } from './model';
-import { formatClock, formatDuration, phaseKey, remainingSeconds, uiCopy, widgetLabels } from './model';
+import { formatClock, formatDuration, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -39,29 +39,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
 
   function patchSettings(changes: Partial<AppState['settings']>) {
     patchState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
-  }
-
-  function moveWidget(id: WidgetId, direction: -1 | 1) {
-    patchState((current) => {
-      const widgets = [...current.settings.widgets];
-      const index = widgets.findIndex((widget) => widget.id === id);
-      const nextIndex = Math.max(0, Math.min(widgets.length - 1, index + direction));
-      if (index === nextIndex) return current;
-      const [item] = widgets.splice(index, 1);
-      widgets.splice(nextIndex, 0, item);
-      return { ...current, settings: { ...current.settings, widgets } };
-    });
-  }
-
-  function dropWidget(source: WidgetId, target: WidgetId) {
-    patchState((current) => {
-      const widgets = [...current.settings.widgets];
-      const sourceIndex = widgets.findIndex((widget) => widget.id === source);
-      const targetIndex = widgets.findIndex((widget) => widget.id === target);
-      const [item] = widgets.splice(sourceIndex, 1);
-      widgets.splice(targetIndex, 0, item);
-      return { ...current, settings: { ...current.settings, widgets } };
-    });
   }
 
   function updateSelected(changes: { visible?: boolean; size?: WidgetSize }) {
@@ -102,8 +79,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           selected={selected}
           selectedWidget={selectedWidget}
           onSelect={setSelected}
-          onMove={moveWidget}
-          onDrop={dropWidget}
           onUpdateSelected={updateSelected}
           patchSettings={patchSettings}
           patchState={patchState}
@@ -197,8 +172,6 @@ function EditorPage({
   selected,
   selectedWidget,
   onSelect,
-  onMove,
-  onDrop,
   onUpdateSelected,
   patchSettings,
   patchState,
@@ -210,8 +183,6 @@ function EditorPage({
   selected: WidgetId;
   selectedWidget: AppState['settings']['widgets'][number];
   onSelect: (id: WidgetId) => void;
-  onMove: (id: WidgetId, direction: -1 | 1) => void;
-  onDrop: (source: WidgetId, target: WidgetId) => void;
   onUpdateSelected: (changes: { visible?: boolean; size?: WidgetSize }) => void;
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
@@ -231,7 +202,7 @@ function EditorPage({
             <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
             <h1>視聴者表示を直接編集</h1>
           </div>
-          <span className="helper-text">要素を選択、またはドラッグして移動</span>
+          <span className="helper-text">表示する内容を選び、文字サイズを調整</span>
         </div>
         <div className={`preview-canvas editor-canvas preview-${state.settings.layout}`}>
           <Board
@@ -241,12 +212,10 @@ function EditorPage({
             editor
             selected={selected}
             onSelect={onSelect}
-            onMove={onMove}
-            onDropWidget={onDrop}
           />
         </div>
         <div className="widget-visibility-row" aria-label="表示する項目">
-          {state.settings.widgets.map((widget) => (
+          {[...state.settings.widgets].sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
             <label key={widget.id} className={widget.visible ? 'enabled' : ''}>
               <input
                 type="checkbox"
@@ -280,7 +249,7 @@ function EditorPage({
           <div className="inspector-content">
             <p className="eyebrow">選択中の項目</p>
             <h2>{widgetLabels[language][selected]}</h2>
-            <Field label="表示サイズ">
+            <Field label="文字サイズ">
               <div className="segmented">
                 {(['small', 'medium', 'large'] as WidgetSize[]).map((size) => (
                   <button key={size} className={selectedWidget.size === size ? 'active' : ''} onClick={() => onUpdateSelected({ size })}>

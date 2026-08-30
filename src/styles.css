@@ -375,54 +375,9 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .editor-canvas.preview-vertical { min-height: 580px; }
 .editor-canvas.preview-vertical .board { width: min(100%, 320px); height: 520px; }
 .board-editor { overflow: visible; }
-.board-editor .board-widget { cursor: grab; }
-.board-editor .board-widget:active { cursor: grabbing; }
+.board-editor .board-widget { cursor: pointer; }
 .board-editor .board-widget:focus-visible { outline: none; }
 .board-editor .board-widget.is-selected > .widget-content { border-radius: 2px; outline: 2px dashed currentColor; outline-offset: 6px; }
-.widget-move-tools {
-  position: absolute;
-  z-index: 4;
-  top: 5px;
-  right: 5px;
-  padding: 2px;
-  border: 1px solid #c8c8c8;
-  border-radius: 999px;
-  background: #fff;
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transform: translateY(3px);
-  pointer-events: none;
-  transition: opacity 120ms ease, transform 120ms ease;
-}
-.board-widget:hover .widget-move-tools, .board-widget:focus-visible .widget-move-tools,
-.widget-move-tools:focus-within { opacity: 1; transform: translateY(0); pointer-events: auto; }
-.widget-move-tools button {
-  position: relative;
-  width: 30px;
-  height: 26px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0;
-  background: transparent;
-  color: #222;
-  display: grid;
-  place-items: center;
-  font-size: 0;
-  cursor: pointer;
-}
-.widget-move-tools button:hover { background: #111; color: #fff; }
-.widget-move-tools button:disabled { opacity: .24; cursor: not-allowed; }
-.widget-move-tools button:disabled:hover { background: transparent; color: #222; }
-.widget-move-tools button::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border: solid currentColor;
-  border-width: 0 1.5px 1.5px 0;
-}
-.widget-move-tools button:first-child::before { transform: rotate(135deg); }
-.widget-move-tools button:last-child::before { transform: rotate(-45deg); }
 .widget-visibility-row { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .widget-visibility-row label {
   min-height: 32px;

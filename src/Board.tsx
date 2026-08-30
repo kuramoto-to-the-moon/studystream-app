@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent } from 'react';
+import type { CSSProperties } from 'react';
 import type { AppState, SessionState, WidgetId } from './model';
 import {
   formatClock,
@@ -8,6 +8,7 @@ import {
   streakDays,
   uiCopy,
   widgetLabels,
+  widgetOrder,
 } from './model';
 
 interface BoardProps {
@@ -17,31 +18,6 @@ interface BoardProps {
   editor?: boolean;
   selected?: WidgetId;
   onSelect?: (id: WidgetId) => void;
-  onMove?: (id: WidgetId, direction: -1 | 1) => void;
-  onDropWidget?: (source: WidgetId, target: WidgetId) => void;
-}
-
-function MoveTools({
-  id,
-  onMove,
-  canMoveBack,
-  canMoveForward,
-}: {
-  id: WidgetId;
-  onMove?: (id: WidgetId, direction: -1 | 1) => void;
-  canMoveBack: boolean;
-  canMoveForward: boolean;
-}) {
-  return (
-    <span className="widget-move-tools" aria-label="表示順を変更">
-      <button type="button" title="前へ移動" aria-label="前へ移動" disabled={!canMoveBack} onClick={(event) => { event.stopPropagation(); onMove?.(id, -1); }}>
-        ‹
-      </button>
-      <button type="button" title="後ろへ移動" aria-label="後ろへ移動" disabled={!canMoveForward} onClick={(event) => { event.stopPropagation(); onMove?.(id, 1); }}>
-        ›
-      </button>
-    </span>
-  );
 }
 
 export function Board({
@@ -51,8 +27,6 @@ export function Board({
   editor = false,
   selected,
   onSelect,
-  onMove,
-  onDropWidget,
 }: BoardProps) {
   const { settings } = state;
   const language = settings.language;
@@ -65,7 +39,9 @@ export function Board({
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': settings.textColor,
   } as CSSProperties;
-  const visibleWidgets = settings.widgets.filter((widget) => widget.visible);
+  const visibleWidgets = [...settings.widgets]
+    .filter((widget) => widget.visible)
+    .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
 
   const content: Record<WidgetId, React.ReactNode> = {
     state: <strong className="board-state">{copy[key]}</strong>,
@@ -102,52 +78,26 @@ export function Board({
     ),
   };
 
-  function startDrag(event: DragEvent<HTMLElement>, id: WidgetId) {
-    event.dataTransfer.setData('text/studystream-widget', id);
-    event.dataTransfer.effectAllowed = 'move';
-  }
-
-  function drop(event: DragEvent<HTMLElement>, target: WidgetId) {
-    event.preventDefault();
-    const source = event.dataTransfer.getData('text/studystream-widget') as WidgetId;
-    if (source && source !== target) onDropWidget?.(source, target);
-  }
-
   return (
     <div
       className={`board board-${settings.layout}${editor ? ' board-editor' : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
-      {visibleWidgets.map((widget) => {
-        const widgetIndex = settings.widgets.findIndex((item) => item.id === widget.id);
-        return (
+      {visibleWidgets.map((widget) => (
         <article
           key={widget.id}
           className={`board-widget widget-${widget.id} size-${widget.size}${selected === widget.id ? ' is-selected' : ''}`}
           data-widget={widget.id}
-          draggable={editor}
           tabIndex={editor ? 0 : undefined}
           onClick={() => editor && onSelect?.(widget.id)}
           onKeyDown={(event) => {
             if (editor && (event.key === 'Enter' || event.key === ' ')) onSelect?.(widget.id);
           }}
-          onDragStart={(event) => startDrag(event, widget.id)}
-          onDragOver={(event) => editor && event.preventDefault()}
-          onDrop={(event) => editor && drop(event, widget.id)}
         >
           <span className="widget-content">{content[widget.id]}</span>
-          {editor && (
-            <MoveTools
-              id={widget.id}
-              onMove={onMove}
-              canMoveBack={widgetIndex > 0}
-              canMoveForward={widgetIndex < settings.widgets.length - 1}
-            />
-          )}
         </article>
-        );
-      })}
+      ))}
     </div>
   );
 }

@@ -4,6 +4,8 @@ export type Layout = 'horizontal' | 'vertical';
 export type WidgetId = 'state' | 'timer' | 'message' | 'session' | 'today' | 'streaks';
 export type WidgetSize = 'small' | 'medium' | 'large';
 
+export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'session', 'today', 'streaks'];
+
 export interface SessionState {
   phase: Phase;
   tracking: boolean;
