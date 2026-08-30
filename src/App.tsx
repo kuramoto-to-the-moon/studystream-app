@@ -78,11 +78,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     <div className="app-shell">
       <header className="app-header">
         <button type="button" className="wordmark" onClick={() => setPage('control')}>StudyStream</button>
-        <nav aria-label="画面切り替え">
-          <button className="header-page-action" onClick={() => setPage(page === 'control' ? 'editor' : 'control')}>
-            {page === 'control' ? <>ボード編集 <span aria-hidden="true">→</span></> : <><span aria-hidden="true">←</span> 配信操作へ戻る</>}
-          </button>
-        </nav>
         <div className="header-tools">
           <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
           <span>{connected ? 'ローカル保存' : '再接続中'}</span>
@@ -112,6 +107,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           onUpdateSelected={updateSelected}
           patchSettings={patchSettings}
           patchState={patchState}
+          onBack={() => setPage('control')}
         />
       )}
     </div>
@@ -133,7 +129,6 @@ function ControlPage({
 }) {
   const copy = uiCopy[state.settings.language];
   const key = phaseKey(session);
-  const [previewBackdrop, setPreviewBackdrop] = useState<'checker' | 'light' | 'dark'>('checker');
   const enterStudy = () => {
     if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
     else if (!session.tracking) actions.toggleTracking();
@@ -143,7 +138,6 @@ function ControlPage({
     <main className="page control-page">
       <section className="panel session-panel">
         <div className="control-section-title">
-          <span className="section-number">1</span>
           <div>
             <h1>配信操作</h1>
             <p>いまの状態を選択します</p>
@@ -182,36 +176,15 @@ function ControlPage({
         {session.phase !== 'idle' && (
           <button type="button" className="finish-session" onClick={actions.finish}>現在のセッションを終了</button>
         )}
-      </section>
-
-      <section className="panel preview-panel">
-        <div className="control-section-title preview-title">
-          <span className="section-number">2</span>
-          <div>
-            <h2>視聴者表示</h2>
-            <p>OBSに現在表示されている内容です</p>
-          </div>
-          <span className="sync-status"><span aria-hidden="true" />OBSと同期中</span>
+        <div className="control-utilities">
+          <button type="button" className="open-editor-button" onClick={onEdit}>
+            <span><strong>ボード編集</strong><small>色・文字・表示項目を変更</small></span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <button type="button" className="copy-obs-button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
+            OBS URLをコピー
+          </button>
         </div>
-        <div className="preview-toolbar" aria-label="プレビューの確認背景">
-          <span>透過確認用の下地</span>
-          <div className="backdrop-options">
-            <button type="button" className={previewBackdrop === 'checker' ? 'active' : ''} onClick={() => setPreviewBackdrop('checker')}>市松</button>
-            <button type="button" className={previewBackdrop === 'light' ? 'active' : ''} onClick={() => setPreviewBackdrop('light')}>白</button>
-            <button type="button" className={previewBackdrop === 'dark' ? 'active' : ''} onClick={() => setPreviewBackdrop('dark')}>黒</button>
-          </div>
-          <span className="preview-note">この下地はOBSには表示されません</span>
-        </div>
-        <div className={`preview-canvas preview-${state.settings.layout} backdrop-${previewBackdrop}`}>
-          <Board state={state} session={session} now={now} />
-        </div>
-        <div className="obs-url">
-          <div><span>OBS Browser Source</span><code>http://127.0.0.1:47831/overlay</code></div>
-          <button type="button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>URLをコピー</button>
-        </div>
-        <button type="button" className="edit-board-link" onClick={onEdit}>
-          色・文字・表示項目は「ボード編集」で変更できます
-        </button>
       </section>
     </main>
   );
@@ -229,6 +202,7 @@ function EditorPage({
   onUpdateSelected,
   patchSettings,
   patchState,
+  onBack,
 }: {
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
@@ -241,6 +215,7 @@ function EditorPage({
   onUpdateSelected: (changes: { visible?: boolean; size?: WidgetSize }) => void;
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
+  onBack: () => void;
 }) {
   const language = state.settings.language;
   const messageKey = phaseKey(session);
@@ -252,7 +227,8 @@ function EditorPage({
     <main className="page editor-page">
       <section className="panel editor-preview-panel">
         <div className="section-heading compact">
-          <div>
+          <div className="editor-heading-copy">
+            <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
             <h1>視聴者表示を直接編集</h1>
           </div>
           <span className="helper-text">要素を選択、またはドラッグして移動</span>
