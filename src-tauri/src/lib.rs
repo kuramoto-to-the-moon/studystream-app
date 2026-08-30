@@ -20,7 +20,7 @@ pub fn run() {
                 WebviewUrl::External("http://127.0.0.1:47831/".parse()?),
             )
             .title("StudyStream")
-            .inner_size(1100.0, 600.0)
+            .inner_size(1100.0, 720.0)
             .min_inner_size(520.0, 480.0)
             .resizable(true)
             .build()?;
