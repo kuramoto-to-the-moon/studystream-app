@@ -533,6 +533,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .editor-canvas.preview-horizontal .board { width: min(100%, 600px); height: auto; aspect-ratio: 600 / 180; }
 .editor-canvas.preview-vertical { min-height: 580px; }
 .editor-canvas.preview-vertical .board { width: min(100%, 320px); height: 520px; }
+@media (min-width: 1050px) {
+  .editor-preview-panel { position: sticky; top: 92px; align-self: start; }
+  .editor-canvas.preview-vertical { min-height: min(580px, calc(100vh - 200px)); }
+  .editor-canvas.preview-vertical .board { height: max(220px, min(520px, calc(100vh - 254px))); }
+}
 .inspector {
   position: sticky;
   top: 92px;
