@@ -24,16 +24,20 @@ interface BoardProps {
 function MoveTools({
   id,
   onMove,
+  canMoveBack,
+  canMoveForward,
 }: {
   id: WidgetId;
   onMove?: (id: WidgetId, direction: -1 | 1) => void;
+  canMoveBack: boolean;
+  canMoveForward: boolean;
 }) {
   return (
     <span className="widget-move-tools" aria-label="表示順を変更">
-      <button type="button" aria-label="前へ移動" onClick={(event) => { event.stopPropagation(); onMove?.(id, -1); }}>
+      <button type="button" title="前へ移動" aria-label="前へ移動" disabled={!canMoveBack} onClick={(event) => { event.stopPropagation(); onMove?.(id, -1); }}>
         ‹
       </button>
-      <button type="button" aria-label="後ろへ移動" onClick={(event) => { event.stopPropagation(); onMove?.(id, 1); }}>
+      <button type="button" title="後ろへ移動" aria-label="後ろへ移動" disabled={!canMoveForward} onClick={(event) => { event.stopPropagation(); onMove?.(id, 1); }}>
         ›
       </button>
     </span>
@@ -61,6 +65,7 @@ export function Board({
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': settings.textColor,
   } as CSSProperties;
+  const visibleWidgets = settings.widgets.filter((widget) => widget.visible);
 
   const content: Record<WidgetId, React.ReactNode> = {
     state: <strong className="board-state">{copy[key]}</strong>,
@@ -114,7 +119,9 @@ export function Board({
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
-      {settings.widgets.filter((widget) => widget.visible).map((widget) => (
+      {visibleWidgets.map((widget) => {
+        const widgetIndex = settings.widgets.findIndex((item) => item.id === widget.id);
+        return (
         <article
           key={widget.id}
           className={`board-widget widget-${widget.id} size-${widget.size}${selected === widget.id ? ' is-selected' : ''}`}
@@ -130,9 +137,17 @@ export function Board({
           onDrop={(event) => editor && drop(event, widget.id)}
         >
           <span className="widget-content">{content[widget.id]}</span>
-          {editor && <MoveTools id={widget.id} onMove={onMove} />}
+          {editor && (
+            <MoveTools
+              id={widget.id}
+              onMove={onMove}
+              canMoveBack={widgetIndex > 0}
+              canMoveForward={widgetIndex < settings.widgets.length - 1}
+            />
+          )}
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 }
