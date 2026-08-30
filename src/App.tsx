@@ -63,15 +63,31 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
             <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
             <span>{connected ? '端末に保存済み' : '再接続中'}</span>
           </div>
-          <button
-            type="button"
-            className="theme-toggle"
-            aria-label={darkMode ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
-            title={darkMode ? 'ライトモード' : 'ダークモード'}
-            onClick={() => setDarkMode((current) => !current)}
-          >
-            <span aria-hidden="true">{darkMode ? '☀' : '☾'}</span>
-          </button>
+          <details className="app-settings">
+            <summary>
+              <svg aria-hidden="true" viewBox="0 0 20 20">
+                <path d="M3 5h4m3 0h7M3 10h9m3 0h2M3 15h2m3 0h9" />
+                <circle cx="8.5" cy="5" r="1.5" />
+                <circle cx="13.5" cy="10" r="1.5" />
+                <circle cx="6.5" cy="15" r="1.5" />
+              </svg>
+              <span>設定</span>
+            </summary>
+            <div className="app-settings-popover">
+              <div className="app-settings-heading">
+                <strong>アプリ設定</strong>
+                <span>配信者向けの操作画面</span>
+              </div>
+              <div className="app-settings-group">
+                <span>表示テーマ</span>
+                <div className="theme-options">
+                  <button type="button" className={!darkMode ? 'active' : ''} onClick={() => setDarkMode(false)}>ライト</button>
+                  <button type="button" className={darkMode ? 'active' : ''} onClick={() => setDarkMode(true)}>ダーク</button>
+                </div>
+              </div>
+              <p>視聴者表示の色には影響しません</p>
+            </div>
+          </details>
         </div>
       </header>
 
