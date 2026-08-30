@@ -100,24 +100,6 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
 }
 .header-navigation { min-width: 0; display: flex; align-items: center; gap: 18px; }
-.app-nav { display: flex; align-items: center; gap: 4px; }
-.app-nav button {
-  min-height: 38px;
-  border: 0;
-  border-radius: 7px;
-  padding: 0 12px;
-  background: transparent;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.app-nav button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
-.app-nav button:hover { background: var(--surface-hover); color: var(--ink); }
-.app-nav button.active { background: var(--active-soft); color: var(--ink); font-weight: 800; }
 .header-actions { display: flex; align-items: center; gap: 6px; }
 .header-obs-button {
   min-width: 88px;
@@ -268,8 +250,25 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
+.board-edit-button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--surface-muted);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.board-edit-button svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.board-edit-button:hover { border-color: var(--muted); background: var(--surface-hover); }
 .session-finish-button {
   flex: 0 0 auto;
   min-height: 30px;

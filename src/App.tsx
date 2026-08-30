@@ -115,12 +115,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
         <div className="app-header-inner">
           <div className="header-navigation">
             <button type="button" className="wordmark" title="ホームへ戻る" onClick={() => navigate('control')}>StudyStream</button>
-            <nav className="app-nav" aria-label="メイン画面">
-              <button type="button" className={page === 'editor' ? 'active' : ''} aria-current={page === 'editor' ? 'page' : undefined} onClick={() => navigate('editor')}>
-                <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="3.5" width="14" height="13" rx="1.5" /><path d="M3 8h14M8 8v8.5" /></svg>
-                <span>ボード編集</span>
-              </button>
-            </nav>
           </div>
           <div className="header-actions">
             <button
@@ -229,7 +223,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
       </dialog>
 
       {page === 'control' ? (
-        <ControlPage state={state} session={displaySession} now={now} actions={actions} />
+        <ControlPage state={state} session={displaySession} now={now} actions={actions} onEditBoard={() => navigate('editor')} />
       ) : (
         <EditorPage
           state={state}
@@ -290,11 +284,13 @@ function ControlPage({
   session,
   now,
   actions,
+  onEditBoard,
 }: {
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
   actions: ReturnType<typeof useStudyStream>['actions'];
+  onEditBoard: () => void;
 }) {
   const copy = uiCopy.ja;
   const key = phaseKey(session);
@@ -326,13 +322,17 @@ function ControlPage({
           <h1>現在のセッション</h1>
           <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
         </div>
-        {session.phase !== 'idle' && (
-          <div className="session-page-actions">
+        <div className="session-page-actions">
+          <button type="button" className="board-edit-button" onClick={onEditBoard}>
+            <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="3.5" width="14" height="13" rx="1.5" /><path d="M3 8h14M8 8v8.5" /></svg>
+            <span>ボード編集</span>
+          </button>
+          {session.phase !== 'idle' && (
             <button type="button" className="session-finish-button" onClick={actions.finish}>
               セッションを終了
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
       <section className="panel session-panel">
         <div className="phase-summary">
