@@ -116,19 +116,25 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .app-nav button.active { background: var(--active-soft); color: var(--ink); font-weight: 800; }
 .header-actions { display: flex; align-items: center; gap: 6px; }
 .header-obs-button {
-  min-width: 100px;
-  min-height: 34px;
+  min-width: 122px;
+  min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  padding: 0 10px;
+  padding: 5px 10px;
   background: var(--surface);
   color: var(--ink);
-  font-size: 10px;
-  font-weight: 700;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   cursor: pointer;
 }
+.header-obs-button > span { font-size: 10px; font-weight: 750; line-height: 1.2; }
+.header-obs-button > small { color: var(--muted); font-size: 8px; font-weight: 650; line-height: 1.2; }
 .header-obs-button:hover { background: var(--surface-hover); }
 .header-obs-button.copied { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.header-obs-button.copied > small { color: color-mix(in srgb, var(--surface) 76%, transparent); }
 .header-obs-button.failed { border-color: var(--muted); }
 .app-settings { position: relative; justify-self: end; }
 .app-settings summary {

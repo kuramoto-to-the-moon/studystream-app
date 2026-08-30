@@ -60,6 +60,8 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
 
   if (!state || !displaySession) return null;
 
+  const obsSize = recommendedObsSize(state, displaySession);
+
   function patchState(mutator: (draft: AppState) => AppState) {
     update(mutator);
   }
@@ -119,7 +121,8 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               aria-live="polite"
               onClick={() => void copyObsUrl()}
             >
-              {obsCopyState === 'copied' ? 'コピー済み' : obsCopyState === 'failed' ? 'コピー失敗' : 'OBS URLをコピー'}
+              <span>{obsCopyState === 'copied' ? 'コピー済み' : obsCopyState === 'failed' ? 'コピー失敗' : 'OBS URLをコピー'}</span>
+              <small>推奨サイズ {obsSize.width} × {obsSize.height}</small>
             </button>
             <details ref={settingsRef} className="app-settings">
             <summary>
@@ -163,6 +166,18 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
       )}
     </div>
   );
+}
+
+function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>) {
+  if (state.settings.layout === 'vertical') return { width: 320, height: 520 };
+
+  const note = state.settings.note?.trim() ?? '';
+  const auxiliaryRows = state.settings.widgets.filter((widget) => widget.visible && (
+    (widget.id === 'note' && note.length > 0)
+    || (widget.id === 'offstream' && state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0)
+  )).length;
+
+  return { width: 600, height: 180 + auxiliaryRows * 44 };
 }
 
 function ControlPage({
