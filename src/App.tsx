@@ -58,8 +58,18 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     <div className="app-shell">
       <header className={`app-header app-header-${page}`}>
         <div className="app-header-inner">
-          <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
-          <details className="app-settings">
+          <div className="header-navigation">
+            <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
+            <nav className="app-nav" aria-label="メイン画面">
+              <button type="button" className={page === 'control' ? 'active' : ''} aria-current={page === 'control' ? 'page' : undefined} onClick={() => navigate('control')}>ホーム</button>
+              <button type="button" className={page === 'editor' ? 'active' : ''} aria-current={page === 'editor' ? 'page' : undefined} onClick={() => navigate('editor')}>ボード編集</button>
+            </nav>
+          </div>
+          <div className="header-actions">
+            <button type="button" className="header-obs-button" title="OBS URLをコピー" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
+              OBS URL
+            </button>
+            <details className="app-settings">
             <summary>
               <svg aria-hidden="true" viewBox="0 0 20 20">
                 <path d="M3 5h4m3 0h7M3 10h9m3 0h2M3 15h2m3 0h9" />
@@ -83,12 +93,13 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               </div>
               <p>視聴者表示の色には影響しません</p>
             </div>
-          </details>
+            </details>
+          </div>
         </div>
       </header>
 
       {page === 'control' ? (
-        <ControlPage state={state} session={displaySession} now={now} actions={actions} onEdit={() => navigate('editor')} />
+        <ControlPage state={state} session={displaySession} now={now} actions={actions} />
       ) : (
         <EditorPage
           state={state}
@@ -96,7 +107,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           now={now}
           patchSettings={patchSettings}
           patchState={patchState}
-          onBack={() => navigate('control')}
         />
       )}
     </div>
@@ -108,13 +118,11 @@ function ControlPage({
   session,
   now,
   actions,
-  onEdit,
 }: {
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
   actions: ReturnType<typeof useStudyStream>['actions'];
-  onEdit: () => void;
 }) {
   const copy = uiCopy[state.settings.language];
   const key = phaseKey(session);
@@ -126,8 +134,8 @@ function ControlPage({
   return (
     <main className="page control-page">
       <header className="page-heading">
-        <h1>配信操作</h1>
-        <p>学習と休憩の状態を切り替えます</p>
+        <h1>学習セッション</h1>
+        <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
       </header>
       <section className="panel session-panel">
         <div className="panel-heading">
@@ -169,20 +177,6 @@ function ControlPage({
           <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
         </div>
       </section>
-      <section className="panel board-tools-panel">
-        <div className="panel-heading">
-          <div><h2>配信ボード</h2><p>視聴者に見せる情報とデザインを管理します</p></div>
-        </div>
-        <div className="board-tools-actions">
-          <button type="button" className="open-editor-button" onClick={onEdit}>
-            <span><strong>ボード編集</strong><small>表示内容・メッセージ・色を変更</small></span>
-            <span aria-hidden="true">→</span>
-          </button>
-          <button type="button" className="copy-obs-button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
-            OBS URLをコピー
-          </button>
-        </div>
-      </section>
     </main>
   );
 }
@@ -193,14 +187,12 @@ function EditorPage({
   now,
   patchSettings,
   patchState,
-  onBack,
 }: {
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
-  onBack: () => void;
 }) {
   const language = state.settings.language;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
@@ -220,7 +212,6 @@ function EditorPage({
   return (
     <main className={`page editor-page${previewOpen ? '' : ' preview-hidden'}`}>
       <header className="editor-page-header page-heading">
-        <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
         <div className="editor-title-row">
           <div>
             <h1>ボード編集</h1>
