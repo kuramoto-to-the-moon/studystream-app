@@ -43,6 +43,22 @@ npm start
 
 タイマー表示は各画面が開始・終了時刻から計算します。サーバーへの保存は操作時と15秒ごとの復旧用チェックポイントだけで、毎秒書き込みません。
 
-## デスクトップ化について
+## デスクトップアプリ
 
-UI、状態モデル、OBS用ローカルHTTP APIを先に分離しています。次段階でTauriのシェルへ載せ、ローカルサーバーの起動・終了とOS別データディレクトリをRust側へ移します。クラウド同期はこのローカル版が安定してから追加します。
+Tauri版はNodeや開発サーバーを必要とせず、アプリ自身が画面・保存API・OBS用URLを提供します。
+
+```bash
+npm run desktop:dev
+npm run desktop:build
+```
+
+macOSでは `src-tauri/target/release/bundle/macos/StudyStream.app` が生成されます。Windowsでは同じソースからインストーラーを生成できます。
+
+ローカルmacOSビルドには自動でアドホック署名を付けます。手元での起動確認用であり、一般配布にはApple Developer IDによる署名と公証が別途必要です。
+
+データはOS標準のアプリデータフォルダへ保存します。
+
+- macOS：`~/Library/Application Support/app.studystream.desktop/state.json`
+- Windows：`%APPDATA%\\app.studystream.desktop\\state.json`
+
+OBSにはアプリ起動中に `http://127.0.0.1:47831/overlay` を登録します。ローカルホストだけで待ち受けるため、LANやインターネットへ公開されません。

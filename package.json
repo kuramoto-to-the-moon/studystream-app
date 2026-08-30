@@ -9,15 +9,18 @@
     "dev:server": "node server/index.mjs",
     "build": "tsc -b && vite build",
     "start": "node server/index.mjs",
-    "check": "tsc -b --pretty false"
+    "check": "tsc -b --pretty false",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "node scripts/build-desktop.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

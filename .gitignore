@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+src-tauri/target/
 data/*.json
 data/*.tmp
 .DS_Store

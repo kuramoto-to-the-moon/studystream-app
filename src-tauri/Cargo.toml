@@ -1,0 +1,24 @@
+[package]
+name = "studystream"
+version = "0.1.0"
+description = "A local-first OBS companion for study streamers"
+authors = ["StudyStream"]
+edition = "2021"
+
+[lib]
+name = "studystream_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+async-stream = "0.3"
+axum = "0.8"
+futures-core = "0.3"
+mime_guess = "2"
+rust-embed = "8"
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tokio = { version = "1", features = ["fs", "net", "rt-multi-thread", "sync"] }

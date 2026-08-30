@@ -132,38 +132,37 @@ function ControlPage({
 }) {
   const copy = uiCopy[state.settings.language];
   const key = phaseKey(session);
-  const primaryAction = session.phase === 'idle' ? actions.startStudy : actions.finish;
-  const primaryLabel = session.phase === 'idle' ? '学習を開始' : 'セッションを終了';
+  const enterStudy = () => {
+    if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
+    else if (!session.tracking) actions.toggleTracking();
+  };
 
   return (
     <main className="page control-page">
       <section className="panel session-panel">
-        <div className="section-heading">
+        <div className="phase-summary">
           <div>
-            <p className="eyebrow">CURRENT SESSION</p>
+            <div className="phase-label-row">
+              <p className="eyebrow">CURRENT SESSION</p>
+              {session.phase !== 'idle' && <button type="button" className="finish-session" onClick={actions.finish}>終了</button>}
+            </div>
             <h1>{copy[key]}</h1>
           </div>
-          <span className={`tracking-pill ${session.tracking ? 'active' : ''}`}>
-            <span aria-hidden="true" />{session.tracking ? copy.tracking : copy.notTracking}
-          </span>
+          <div className="control-clock">
+            <strong>{formatClock(remainingSeconds(session, now))}</strong>
+            <span>{copy.remaining}</span>
+          </div>
         </div>
 
-        <div className="hero-clock">
-          <strong>{formatClock(remainingSeconds(session, now))}</strong>
-          <span>{copy.remaining}</span>
-        </div>
-
-        <div className="control-actions">
-          <button type="button" className="button primary" onClick={primaryAction}>
-            {session.phase === 'idle' ? <PlayIcon /> : <StopIcon />}
-            {primaryLabel}
+        <div className="control-actions" aria-label="配信状態">
+          <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} onClick={enterStudy}>
+            学習
           </button>
-          <button type="button" className="button" disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
-            {session.tracking ? <PauseIcon /> : <PlayIcon />}
-            {session.tracking ? '計測を一時停止' : '計測を再開'}
+          <button type="button" className={`button${session.phase === 'study' && !session.tracking ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
+            計測停止
           </button>
-          <button type="button" className="button" disabled={session.phase === 'idle'} onClick={actions.startBreak}>
-            <CupIcon />休憩へ
+          <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
+            休憩
           </button>
         </div>
 
@@ -176,18 +175,21 @@ function ControlPage({
 
       <section className="panel preview-panel">
         <div className="section-heading compact">
-          <div>
-            <p className="eyebrow">OBS PREVIEW</p>
-            <h2>視聴者表示</h2>
-          </div>
-          <div className="inline-fields">
-            <label>形
-              <select value={state.settings.layout} onChange={(event) => patchSettings({ layout: event.target.value as 'horizontal' | 'vertical' })}>
-                <option value="horizontal">横長</option>
-                <option value="vertical">縦長</option>
-              </select>
-            </label>
-          </div>
+          <div><p className="eyebrow">OBS PREVIEW</p><h2>OBSプレビュー</h2></div>
+        </div>
+        <div className="preview-controls" aria-label="視聴者表示の配色">
+          <label>形
+            <select value={state.settings.layout} onChange={(event) => patchSettings({ layout: event.target.value as 'horizontal' | 'vertical' })}>
+              <option value="horizontal">横長</option>
+              <option value="vertical">縦長</option>
+            </select>
+          </label>
+          <label>背景色<input type="color" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} /></label>
+          <label className="opacity-control">不透明度
+            <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
+            <output>{Math.round(state.settings.backgroundOpacity * 100)}%</output>
+          </label>
+          <span>文字：自動（{state.settings.textColor.toLowerCase() === '#ffffff' ? '白' : '黒'}）</span>
         </div>
         <div className={`preview-canvas preview-${state.settings.layout}`}>
           <Board state={state} session={session} now={now} />
@@ -368,17 +370,4 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="field"><span>{label}</span>{children}</label>;
-}
-
-function PlayIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 10 7-10 7V5Z" /></svg>;
-}
-function PauseIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7zm7 0h3v14h-3z" /></svg>;
-}
-function StopIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z" /></svg>;
-}
-function CupIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h11v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8Zm11 2h2a2 2 0 0 1 0 4h-2" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>;
 }
