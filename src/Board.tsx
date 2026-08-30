@@ -96,7 +96,7 @@ export function Board({
 
   return (
     <div
-      className={`board board-${settings.layout}`}
+      className={`board board-${settings.layout} board-lang-${language}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >

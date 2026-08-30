@@ -178,6 +178,14 @@ function EditorPage({
   const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
   const currentMessageKey = phaseKey(session);
 
+  function changeMetricKind(slotId: MetricWidgetId, nextKind: MetricKind) {
+    const previousKind = metricKinds[slotId];
+    const occupiedSlot = metricSlotIds.find((candidate) => candidate !== slotId && metricKinds[candidate] === nextKind);
+    const nextMetricKinds = { ...metricKinds, [slotId]: nextKind };
+    if (occupiedSlot) nextMetricKinds[occupiedSlot] = previousKind;
+    patchSettings({ metricKinds: nextMetricKinds });
+  }
+
   return (
     <main className={`page editor-page${previewOpen ? '' : ' preview-hidden'}`}>
       <header className="editor-page-header page-heading">
@@ -255,7 +263,7 @@ function EditorPage({
               </div>
             </section>
             <section className="settings-section">
-              <div className="settings-section-heading"><strong>集計表示</strong><span>メッセージの下に最大3件</span></div>
+              <div className="settings-section-heading"><strong>集計表示</strong><span>最大3件。同じ内容を選ぶと枠が入れ替わります</span></div>
               <div className="metric-slot-list">
                 {metricSlotIds.map((slotId, index) => {
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
@@ -280,9 +288,7 @@ function EditorPage({
                       <select
                         aria-label={`下段${index + 1}の内容`}
                         value={metricKinds[slotId]}
-                        onChange={(event) => patchSettings({
-                          metricKinds: { ...metricKinds, [slotId]: event.target.value as MetricKind },
-                        })}
+                        onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
                       >
                         {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[language][kind]}</option>)}
                       </select>
