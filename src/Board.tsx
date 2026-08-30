@@ -50,7 +50,7 @@ export function Board({
     state: <strong className="board-state">{copy[key]}</strong>,
     timer: (
       <span className="board-timer-wrap">
-        <strong className="board-timer">{formatClock(remaining)}</strong>
+        <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>{formatClock(remaining)}</strong>
         <span>{copy.remaining}</span>
       </span>
     ),
@@ -83,26 +83,34 @@ export function Board({
     ),
   };
 
+  const renderWidget = (widget: (typeof visibleWidgets)[number]) => (
+    <article
+      key={widget.id}
+      className={`board-widget widget-${widget.id}${selected === widget.id ? ' is-selected' : ''}`}
+      data-widget={widget.id}
+      tabIndex={editor ? 0 : undefined}
+      onClick={() => editor && onSelect?.(widget.id)}
+      onKeyDown={(event) => {
+        if (editor && (event.key === 'Enter' || event.key === ' ')) onSelect?.(widget.id);
+      }}
+    >
+      <span className="widget-content">{content[widget.id]}</span>
+    </article>
+  );
+
+  const primaryWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer');
+  const messageWidgets = visibleWidgets.filter((widget) => widget.id === 'message');
+  const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
+
   return (
     <div
       className={`board board-${settings.layout}${editor ? ' board-editor' : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
-      {visibleWidgets.map((widget) => (
-        <article
-          key={widget.id}
-          className={`board-widget widget-${widget.id}${selected === widget.id ? ' is-selected' : ''}`}
-          data-widget={widget.id}
-          tabIndex={editor ? 0 : undefined}
-          onClick={() => editor && onSelect?.(widget.id)}
-          onKeyDown={(event) => {
-            if (editor && (event.key === 'Enter' || event.key === ' ')) onSelect?.(widget.id);
-          }}
-        >
-          <span className="widget-content">{content[widget.id]}</span>
-        </article>
-      ))}
+      {primaryWidgets.length > 0 && <div className="board-row board-primary-row">{primaryWidgets.map(renderWidget)}</div>}
+      {messageWidgets.length > 0 && <div className="board-row board-message-row">{messageWidgets.map(renderWidget)}</div>}
+      {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
     </div>
   );
 }
