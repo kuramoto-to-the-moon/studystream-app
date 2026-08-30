@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A local-first OBS companion for study streamers"
 authors = ["StudyStream"]
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "studystream_lib"
