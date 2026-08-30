@@ -1,9 +1,10 @@
 :root {
-  font-family: Inter, "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Segoe UI", sans-serif;
+  font-family: "Inter Variable", "Noto Sans JP Variable", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Segoe UI", sans-serif;
   color: #202020;
   background: #f5f5f4;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   --ink: #202020;
   --muted: #707070;
   --line: #d8d8d5;
