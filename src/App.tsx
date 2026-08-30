@@ -190,15 +190,17 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           <div className="obs-setup-values">
             <div className="obs-url-field">
               <span>ブラウザソースURL</span>
-              <code>{OBS_OVERLAY_URL}</code>
-              <button
-                type="button"
-                className={obsCopyState}
-                aria-live="polite"
-                onClick={() => void copyObsUrl()}
-              >
-                {obsCopyState === 'copied' ? 'コピーしました' : obsCopyState === 'failed' ? 'コピー失敗' : 'URLをコピー'}
-              </button>
+              <div className="obs-url-control">
+                <code title={OBS_OVERLAY_URL}>{OBS_OVERLAY_URL}</code>
+                <button
+                  type="button"
+                  className={obsCopyState}
+                  aria-live="polite"
+                  onClick={() => void copyObsUrl()}
+                >
+                  {obsCopyState === 'copied' ? 'コピーしました' : obsCopyState === 'failed' ? 'コピー失敗' : 'URLをコピー'}
+                </button>
+              </div>
             </div>
             <div className="obs-size-fields" aria-label={`推奨サイズ 幅${obsSize.width} 高さ${obsSize.height}`}>
               <div><span>幅</span><strong>{obsSize.width}</strong></div>
