@@ -177,7 +177,8 @@ export function remainingSeconds(session: SessionState, now = Date.now()) {
     return Math.max(0, session.pausedRemainingSeconds);
   }
   if (!session.phaseEndsAt) return 0;
-  return Math.max(0, Math.ceil((session.phaseEndsAt - now) / 1000));
+  const effectiveNow = Math.max(now, session.lastCheckpointAt || now);
+  return Math.max(0, Math.ceil((session.phaseEndsAt - effectiveNow) / 1000));
 }
 
 export function formatClock(seconds: number) {
