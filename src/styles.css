@@ -494,14 +494,10 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 
 /* Board editor */
 .editor-page-header {
-  position: sticky;
-  z-index: 20;
-  top: 72px;
   grid-column: 1 / -1;
   width: 100%;
   justify-self: stretch;
-  padding: 2px 2px 12px;
-  background: var(--app-bg);
+  padding: 2px 2px 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -545,7 +541,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .editor-canvas.preview-vertical { min-height: 580px; }
 .editor-canvas.preview-vertical .board { width: min(100%, 320px); height: 520px; }
 @media (min-width: 1050px) {
-  .editor-preview-panel { position: sticky; top: 150px; align-self: start; }
   .editor-canvas.preview-vertical { min-height: min(580px, calc(100vh - 200px)); }
   .editor-canvas.preview-vertical .board { height: max(220px, min(520px, calc(100vh - 254px))); }
 }
@@ -928,7 +923,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 @media (max-width: 720px) {
   .app-header-inner, .app-header-control .app-header-inner, .app-header-editor .app-header-inner { width: min(100% - 24px, 720px); min-height: 68px; }
-  .editor-page-header { top: 68px; }
   .page { width: min(100% - 24px, 720px); padding: 16px 0 24px; }
   .session-panel, .editor-preview-panel { padding: 18px; }
   .phase-summary { min-height: 72px; padding: 6px 0 12px; }
