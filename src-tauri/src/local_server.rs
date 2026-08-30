@@ -3,7 +3,7 @@ use axum::{
     extract::State,
     http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
     response::{sse::Event, IntoResponse, Response, Sse},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use futures_core::Stream;
@@ -12,14 +12,17 @@ use serde_json::{json, Value};
 use std::{
     convert::Infallible,
     fs, io,
+    io::Write,
     net::TcpListener,
     path::{Path, PathBuf},
+    process::{Command, Stdio},
     sync::Arc,
     thread,
 };
 use tokio::sync::{broadcast, RwLock};
 
 const HOST: &str = "127.0.0.1:47831";
+const OBS_OVERLAY_URL: &str = "http://127.0.0.1:47831/overlay";
 
 #[derive(RustEmbed)]
 #[folder = "../dist/"]
@@ -63,6 +66,7 @@ pub fn start(data_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                 let app = Router::new()
                     .route("/api/state", get(get_state).put(put_state))
                     .route("/api/events", get(events))
+                    .route("/api/copy-obs-url", post(copy_obs_url))
                     .fallback(static_asset)
                     .with_state(state);
                 axum::serve(listener, app).await.expect("run local server");
@@ -102,6 +106,39 @@ async fn events(
         }
     };
     Sse::new(output)
+}
+
+async fn copy_obs_url() -> StatusCode {
+    match write_clipboard(OBS_OVERLAY_URL) {
+        Ok(()) => StatusCode::NO_CONTENT,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+fn write_clipboard(text: &str) -> io::Result<()> {
+    #[cfg(target_os = "macos")]
+    let mut child = Command::new("pbcopy").stdin(Stdio::piped()).spawn()?;
+
+    #[cfg(target_os = "windows")]
+    let mut child = Command::new("cmd")
+        .args(["/C", "clip"])
+        .stdin(Stdio::piped())
+        .spawn()?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    return Err(io::Error::new(io::ErrorKind::Unsupported, "unsupported platform"));
+
+    child
+        .stdin
+        .take()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "clipboard input unavailable"))?
+        .write_all(text.as_bytes())?;
+
+    if child.wait()?.success() {
+        Ok(())
+    } else {
+        Err(io::Error::other("clipboard command failed"))
+    }
 }
 
 async fn static_asset(uri: Uri) -> Response {

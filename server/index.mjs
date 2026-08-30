@@ -2,6 +2,7 @@ import { createReadStream, existsSync } from 'node:fs';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
 import process from 'node:process';
 
 const host = '127.0.0.1';
@@ -89,6 +90,17 @@ function broadcast(value) {
   for (const client of clients) client.write(payload);
 }
 
+function copyObsUrl() {
+  const command = process.platform === 'win32' ? 'cmd' : 'pbcopy';
+  const args = process.platform === 'win32' ? ['/C', 'clip'] : [];
+  return new Promise((resolveCopy, rejectCopy) => {
+    const child = spawn(command, args, { stdio: ['pipe', 'ignore', 'ignore'] });
+    child.once('error', rejectCopy);
+    child.once('close', (code) => code === 0 ? resolveCopy() : rejectCopy(new Error('clipboard-command-failed')));
+    child.stdin.end(`http://${host}:${port}/overlay`);
+  });
+}
+
 async function readBody(request) {
   const chunks = [];
   let size = 0;
@@ -156,6 +168,17 @@ const server = createServer(async (request, response) => {
     response.write(`data: ${JSON.stringify(currentState)}\n\n`);
     clients.add(response);
     request.on('close', () => clients.delete(response));
+    return;
+  }
+
+  if (url.pathname === '/api/copy-obs-url' && request.method === 'POST') {
+    try {
+      await copyObsUrl();
+      response.writeHead(204, { 'Cache-Control': 'no-store' });
+      response.end();
+    } catch {
+      sendJson(response, 500, { error: 'clipboard-unavailable' });
+    }
     return;
   }
 

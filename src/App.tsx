@@ -5,6 +5,9 @@ import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
+type CopyState = 'idle' | 'copied' | 'failed';
+
+const OBS_OVERLAY_URL = 'http://127.0.0.1:47831/overlay';
 
 export function App() {
   const overlayOnly = window.location.pathname === '/overlay' || new URLSearchParams(window.location.search).get('view') === 'overlay';
@@ -28,6 +31,7 @@ export function App() {
 function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const { state, displaySession, now, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
+  const [obsCopyState, setObsCopyState] = useState<CopyState>('idle');
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = window.localStorage.getItem('studystream-app-theme');
     if (savedTheme) return savedTheme === 'dark';
@@ -54,6 +58,31 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  async function copyObsUrl() {
+    try {
+      const response = await fetch('/api/copy-obs-url', { method: 'POST' });
+      if (!response.ok) throw new Error('Clipboard service unavailable');
+      setObsCopyState('copied');
+    } catch {
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(OBS_OVERLAY_URL);
+        setObsCopyState('copied');
+      } catch {
+        const textarea = document.createElement('textarea');
+        textarea.value = OBS_OVERLAY_URL;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        setObsCopyState(copied ? 'copied' : 'failed');
+      }
+    }
+    window.setTimeout(() => setObsCopyState('idle'), 1800);
+  }
+
   return (
     <div className="app-shell">
       <header className={`app-header app-header-${page}`}>
@@ -66,8 +95,14 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
             </nav>
           </div>
           <div className="header-actions">
-            <button type="button" className="header-obs-button" title="OBS URLをコピー" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
-              OBS URL
+            <button
+              type="button"
+              className={`header-obs-button${obsCopyState !== 'idle' ? ` ${obsCopyState}` : ''}`}
+              title={obsCopyState === 'copied' ? 'OBS URLをコピーしました' : obsCopyState === 'failed' ? 'コピーできませんでした' : 'OBS URLをコピー'}
+              aria-live="polite"
+              onClick={() => void copyObsUrl()}
+            >
+              {obsCopyState === 'copied' ? 'コピー済み' : obsCopyState === 'failed' ? 'コピー失敗' : 'OBS URLをコピー'}
             </button>
             <details className="app-settings">
             <summary>
