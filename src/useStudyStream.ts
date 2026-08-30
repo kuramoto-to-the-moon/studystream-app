@@ -11,8 +11,22 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const stateRef = useRef<AppState | null>(null);
 
   const receive = useCallback((next: AppState) => {
-    stateRef.current = next;
-    setState(next);
+    const session = next.session;
+    const normalized = session.phase === 'study'
+      && !session.tracking
+      && session.phaseEndsAt !== null
+      && session.pausedRemainingSeconds == null
+      ? {
+          ...next,
+          session: {
+            ...session,
+            phaseEndsAt: null,
+            pausedRemainingSeconds: remainingSeconds(session),
+          },
+        }
+      : next;
+    stateRef.current = normalized;
+    setState(normalized);
   }, []);
 
   useEffect(() => {
@@ -69,7 +83,9 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   useEffect(() => {
     if (readOnly) return;
     if (!state) return;
-    const due = remainingSeconds(state.session, now) === 0 && state.session.phase !== 'idle';
+    const due = state.session.phaseEndsAt !== null
+      && remainingSeconds(state.session, now) === 0
+      && state.session.phase !== 'idle';
     if (!due) return;
     update((current) => {
       const checkpointed = materializeSession(current.session, now);
@@ -83,6 +99,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           tracking: nextPhase === 'study',
           phaseStartedAt: now,
           phaseEndsAt: now + minutes * 60_000,
+          pausedRemainingSeconds: null,
           lastCheckpointAt: now,
         },
       };
@@ -98,11 +115,11 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   }, [now, readOnly, state, update]);
 
   const changeSession = useCallback(
-    (changes: (session: SessionState, current: AppState) => SessionState) => {
+    (changes: (session: SessionState, current: AppState, stamp: number) => SessionState) => {
       const stamp = Date.now();
       update((current) => {
         const session = materializeSession(current.session, stamp);
-        return { ...current, session: changes(session, current) };
+        return { ...current, session: changes(session, current, stamp) };
       });
     },
     [update],
@@ -110,38 +127,59 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
 
   const actions = {
     startStudy: () =>
-      changeSession((session, current) => ({
+      changeSession((session, current, stamp) => ({
         ...session,
         sessionSeconds: session.phase === 'idle' ? 0 : session.sessionSeconds,
         phase: 'study',
         tracking: true,
-        phaseStartedAt: Date.now(),
-        phaseEndsAt: Date.now() + current.settings.studyMinutes * 60_000,
-        lastCheckpointAt: Date.now(),
+        phaseStartedAt: stamp,
+        phaseEndsAt: stamp + current.settings.studyMinutes * 60_000,
+        pausedRemainingSeconds: null,
+        lastCheckpointAt: stamp,
       })),
     toggleTracking: () =>
-      changeSession((session) => ({
-        ...session,
-        tracking: session.phase === 'study' ? !session.tracking : false,
-        lastCheckpointAt: Date.now(),
-      })),
+      changeSession((session, _current, stamp) => {
+        if (session.phase !== 'study') return { ...session, tracking: false };
+        if (session.tracking) {
+          return {
+            ...session,
+            tracking: false,
+            phaseEndsAt: null,
+            pausedRemainingSeconds: remainingSeconds(session, stamp),
+            lastCheckpointAt: stamp,
+          };
+        }
+        const pausedRemaining = Math.max(
+          0,
+          session.pausedRemainingSeconds ?? remainingSeconds(session, stamp),
+        );
+        return {
+          ...session,
+          tracking: true,
+          phaseEndsAt: stamp + pausedRemaining * 1000,
+          pausedRemainingSeconds: null,
+          lastCheckpointAt: stamp,
+        };
+      }),
     startBreak: () =>
-      changeSession((session, current) => ({
+      changeSession((session, current, stamp) => ({
         ...session,
         phase: 'break',
         tracking: false,
-        phaseStartedAt: Date.now(),
-        phaseEndsAt: Date.now() + current.settings.breakMinutes * 60_000,
-        lastCheckpointAt: Date.now(),
+        phaseStartedAt: stamp,
+        phaseEndsAt: stamp + current.settings.breakMinutes * 60_000,
+        pausedRemainingSeconds: null,
+        lastCheckpointAt: stamp,
       })),
     finish: () =>
-      changeSession((session) => ({
+      changeSession((session, _current, stamp) => ({
         ...session,
         phase: 'idle',
         tracking: false,
         phaseStartedAt: null,
         phaseEndsAt: null,
-        lastCheckpointAt: Date.now(),
+        pausedRemainingSeconds: null,
+        lastCheckpointAt: stamp,
       })),
   };
 

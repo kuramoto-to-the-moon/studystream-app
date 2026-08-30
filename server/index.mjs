@@ -20,6 +20,7 @@ const initialState = {
     tracking: false,
     phaseStartedAt: null,
     phaseEndsAt: null,
+    pausedRemainingSeconds: null,
     lastCheckpointAt: Date.now(),
     sessionSeconds: 0,
     todaySeconds: 0,
@@ -36,7 +37,7 @@ const initialState = {
     textColor: '#ffffff',
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',
-      paused: '少し会話しています。学習時間の計測は停止中です。',
+      paused: '少し会話しています。学習タイマーは一時停止中です。',
       break: '休憩中です。コメントを読んでいます。',
       idle: 'まもなく学習を始めます。',
     },

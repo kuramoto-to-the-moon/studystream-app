@@ -11,6 +11,7 @@ export interface SessionState {
   tracking: boolean;
   phaseStartedAt: number | null;
   phaseEndsAt: number | null;
+  pausedRemainingSeconds?: number | null;
   lastCheckpointAt: number;
   sessionSeconds: number;
   todaySeconds: number;
@@ -55,7 +56,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: '状態',
     timer: '残り時間',
     message: 'メッセージ',
-    session: '今回',
+    session: '今回の学習',
     today: '今日',
     streaks: '継続項目',
   },
@@ -63,7 +64,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: 'Status',
     timer: 'Time left',
     message: 'Message',
-    session: 'Session',
+    session: 'This session',
     today: 'Today',
     streaks: 'Streak',
   },
@@ -76,9 +77,9 @@ export const uiCopy = {
     paused: '学習中',
     break: '休憩中',
     tracking: '学習時間を計測中',
-    notTracking: '学習時間は停止中',
+    notTracking: '学習タイマーは一時停止中',
     remaining: '残り時間',
-    session: '今回',
+    session: '今回の学習',
     today: '今日',
     total: '累計',
     days: '日',
@@ -92,7 +93,7 @@ export const uiCopy = {
     tracking: 'Study time is running',
     notTracking: 'Study time is paused',
     remaining: 'Time left',
-    session: 'Session',
+    session: 'This session',
     today: 'Today',
     total: 'Total',
     days: 'days',
@@ -132,6 +133,9 @@ function localDayKey(now: number) {
 }
 
 export function remainingSeconds(session: SessionState, now = Date.now()) {
+  if (session.phase === 'study' && !session.tracking && session.pausedRemainingSeconds != null) {
+    return Math.max(0, session.pausedRemainingSeconds);
+  }
   if (!session.phaseEndsAt) return 0;
   return Math.max(0, Math.ceil((session.phaseEndsAt - now) / 1000));
 }

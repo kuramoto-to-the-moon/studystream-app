@@ -104,9 +104,9 @@ function ControlPage({
 }) {
   const copy = uiCopy[state.settings.language];
   const key = phaseKey(session);
+  const isPaused = session.phase === 'study' && !session.tracking;
   const enterStudy = () => {
     if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
-    else if (!session.tracking) actions.toggleTracking();
   };
 
   return (
@@ -132,11 +132,11 @@ function ControlPage({
         </div>
 
         <div className="control-actions" aria-label="配信状態">
-          <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} onClick={enterStudy}>
+          <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} disabled={isPaused} onClick={enterStudy}>
             学習
           </button>
-          <button type="button" className={`button${session.phase === 'study' && !session.tracking ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
-            一時停止
+          <button type="button" className={`button${isPaused ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
+            {isPaused ? '再開' : '一時停止'}
           </button>
           <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
             休憩
