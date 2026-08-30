@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
 import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
@@ -28,6 +28,17 @@ export function App() {
 function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const { state, displaySession, now, connected, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = window.localStorage.getItem('studystream-app-theme');
+    if (savedTheme) return savedTheme === 'dark';
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+    window.localStorage.setItem('studystream-app-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
   if (!state || !displaySession) return null;
 
   function patchState(mutator: (draft: AppState) => AppState) {
@@ -47,9 +58,20 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     <div className="app-shell">
       <header className="app-header">
         <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
-        <div className="save-status" title={connected ? '設定と学習記録はこの端末に保存されています' : 'ローカル保存に再接続しています'}>
-          <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
-          <span>{connected ? '端末に保存済み' : '再接続中'}</span>
+        <div className="header-tools">
+          <div className="save-status" title={connected ? '設定と学習記録はこの端末に保存されています' : 'ローカル保存に再接続しています'}>
+            <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
+            <span>{connected ? '端末に保存済み' : '再接続中'}</span>
+          </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            aria-label={darkMode ? 'ライトモードに切り替える' : 'ダークモードに切り替える'}
+            title={darkMode ? 'ライトモード' : 'ダークモード'}
+            onClick={() => setDarkMode((current) => !current)}
+          >
+            <span aria-hidden="true">{darkMode ? '☀' : '☾'}</span>
+          </button>
         </div>
       </header>
 
@@ -113,7 +135,7 @@ function ControlPage({
           </div>
         </div>
 
-        <div className="control-actions" aria-label="配信状態">
+        <div className={`control-actions${session.phase !== 'idle' ? ' has-session' : ''}`} aria-label="配信状態">
           <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} disabled={isPaused} onClick={enterStudy}>
             学習
           </button>
@@ -123,6 +145,11 @@ function ControlPage({
           <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
             休憩
           </button>
+          {session.phase !== 'idle' && (
+            <button type="button" className="button session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
+              セッション終了
+            </button>
+          )}
         </div>
 
         <div className="session-stats">
@@ -130,13 +157,6 @@ function ControlPage({
           <div><strong>{formatDuration(session.todaySeconds, state.settings.language)}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
         </div>
-        {session.phase !== 'idle' && (
-          <div className="session-footer">
-            <button type="button" className="session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
-              セッション終了
-            </button>
-          </div>
-        )}
       </section>
       <section className="panel board-tools-panel">
         <div className="panel-heading">
