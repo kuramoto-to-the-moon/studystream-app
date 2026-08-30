@@ -646,6 +646,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .inspector-tabs {
   height: 52px;
+  border-radius: 9px 9px 0 0;
   padding: 6px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
