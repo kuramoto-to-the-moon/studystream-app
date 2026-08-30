@@ -65,7 +65,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   background: color-mix(in srgb, var(--surface) 96%, transparent);
 }
 .app-header-inner {
-  width: min(1320px, calc(100% - 48px));
+  width: min(1100px, calc(100% - 48px));
   min-height: 72px;
   margin: 0 auto;
   display: grid;
@@ -73,8 +73,6 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   align-items: center;
   gap: 24px;
 }
-.app-header-control .app-header-inner { width: min(960px, calc(100% - 48px)); }
-.app-header-editor .app-header-inner { width: min(1320px, calc(100% - 48px)); }
 .wordmark {
   width: max-content;
   border: 0;
@@ -157,9 +155,8 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .theme-options button.active { background: var(--accent); color: var(--accent-foreground); }
 .app-settings-popover p { margin: 10px 0 0; line-height: 1.45; }
 
-.page { width: min(1320px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 56px; }
+.page { width: min(1100px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 56px; }
 .control-page {
-  width: min(960px, calc(100% - 48px));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -512,7 +509,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   cursor: pointer;
 }
 .preview-toggle-button:hover { border-color: var(--muted); background: var(--surface-muted); }
-.editor-page.preview-hidden { grid-template-columns: minmax(0, 680px); justify-content: center; }
+.editor-page.preview-hidden { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
 .editor-page.preview-hidden .inspector { position: static; grid-column: 1; width: 100%; max-height: none; }
 .editor-preview-panel { min-width: 0; }
 .preview-card-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
