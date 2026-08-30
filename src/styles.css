@@ -755,9 +755,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .message-state-grid small { max-width: 100%; overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .message-state-grid button.active small { color: var(--muted); }
 .message-editor-box { max-width: 680px; margin-top: 12px; border: 1px solid var(--line); border-radius: 7px; padding: 12px; background: var(--surface); }
-.message-editor-heading { margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.message-editor-heading strong { font-size: 11px; }
-.message-editor-heading span { color: var(--muted); font-size: 8px; text-align: right; }
 .message-editor-box textarea {
   width: 100%;
   min-height: 86px;

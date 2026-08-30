@@ -420,7 +420,7 @@ function EditorPage({
             </section>
             <section className="settings-section">
               <label className="feature-toggle-row">
-                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日の配信外学習を視聴者へ伝えます</small></span>
+                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日・各期間の集計に反映します</small></span>
                 <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
               </label>
             </section>
@@ -447,10 +447,6 @@ function EditorPage({
               ))}
             </div>
             <div className="message-editor-box">
-              <div className="message-editor-heading">
-                <strong>{messageLabels[interfaceLanguage][messageEditorKey]}</strong>
-                <span>{messageDescriptions[interfaceLanguage][messageEditorKey]}</span>
-              </div>
               <textarea
                 rows={4}
                 maxLength={220}
@@ -557,6 +553,8 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
   };
   const removeItem = () => {
     if (!streak) return;
+    const itemName = streak.name.trim() || '名称未設定';
+    if (!window.confirm(`「${itemName}」を削除しますか？\nこの操作は取り消せません。`)) return;
     patchState((current) => ({
       ...current,
       settings: { ...current.settings, streaks: current.settings.streaks.filter((item) => item.id !== streak.id) },
