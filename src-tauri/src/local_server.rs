@@ -209,6 +209,7 @@ fn default_state() -> Value {
             "lastCheckpointAt": 0,
             "sessionSeconds": 0,
             "todaySeconds": 0,
+            "offstreamTodaySeconds": 0,
             "totalSeconds": 0,
             "dayKey": "",
             "dailySeconds": {}
@@ -234,6 +235,7 @@ fn default_state() -> Value {
                 { "id": "state", "visible": true },
                 { "id": "timer", "visible": true },
                 { "id": "message", "visible": true },
+                { "id": "offstream", "visible": true },
                 { "id": "note", "visible": true },
                 { "id": "session", "visible": true },
                 { "id": "today", "visible": true },

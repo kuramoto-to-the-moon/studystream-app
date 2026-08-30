@@ -31,6 +31,7 @@ export function Board({
   const remaining = remainingSeconds(session, now);
   const message = settings.messages[key];
   const note = settings.note?.trim() ?? '';
+  const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
   const visibleStreaks = settings.streaks.filter((item) => item.visible);
   const currentStreak = visibleStreaks.length > 0
     ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
@@ -43,7 +44,9 @@ export function Board({
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
   } as CSSProperties;
   const visibleWidgets = [...settings.widgets]
-    .filter((widget) => widget.visible && (widget.id !== 'note' || note.length > 0))
+    .filter((widget) => widget.visible
+      && (widget.id !== 'note' || note.length > 0)
+      && (widget.id !== 'offstream' || offstreamTodaySeconds > 0))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
   const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
 
@@ -76,6 +79,14 @@ export function Board({
       </span>
     ),
     message: <span className="board-message" title={message}>{message}</span>,
+    offstream: (
+      <span className="board-offstream">
+        <span>{language === 'ja' ? '配信外の学習' : 'Off-stream study'}</span>
+        <strong>{language === 'ja'
+          ? `今日は${formatDuration(offstreamTodaySeconds, language)}学習しました`
+          : `${formatDuration(offstreamTodaySeconds, language)} today`}</strong>
+      </span>
+    ),
     note: <span className="board-note" title={note}>{note}</span>,
     session: metricContent(metricKinds.session),
     today: metricContent(metricKinds.today),
@@ -94,7 +105,7 @@ export function Board({
 
   const primaryWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer');
   const messageWidgets = visibleWidgets.filter((widget) => widget.id === 'message');
-  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'note');
+  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'offstream' || widget.id === 'note');
   const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
 
   return (

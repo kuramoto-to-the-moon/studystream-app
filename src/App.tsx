@@ -232,7 +232,7 @@ function ControlPage({
       </section>
       <details className="panel offstream-panel">
         <summary>
-          <span><strong>配信外の学習を追加</strong><small>今日と各期間の集計へ反映します</small></span>
+          <span><strong>配信外の学習を追加</strong><small>{(session.offstreamTodaySeconds ?? 0) > 0 ? `今日は${formatDuration(session.offstreamTodaySeconds ?? 0, 'ja')}を視聴者に表示中` : '視聴者表示と今日・各期間の集計へ反映します'}</small></span>
           <span aria-hidden="true">開く</span>
         </summary>
         <form className="offstream-form" onSubmit={addOffstreamStudy}>
@@ -329,7 +329,7 @@ function EditorPage({
             <section className="settings-section" aria-label="基本表示">
               <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'note'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <input

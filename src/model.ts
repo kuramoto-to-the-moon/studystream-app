@@ -1,11 +1,11 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
-export type WidgetId = 'state' | 'timer' | 'message' | 'note' | 'session' | 'today' | 'streaks';
+export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks';
 export type MetricWidgetId = 'session' | 'today' | 'streaks';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
-export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'note', 'session', 'today', 'streaks'];
+export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', 'session', 'today', 'streaks'];
 
 export interface SessionState {
   phase: Phase;
@@ -16,6 +16,7 @@ export interface SessionState {
   lastCheckpointAt: number;
   sessionSeconds: number;
   todaySeconds: number;
+  offstreamTodaySeconds?: number;
   totalSeconds: number;
   dayKey: string;
   dailySeconds?: Record<string, number>;
@@ -65,6 +66,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: '状態',
     timer: '残り時間',
     message: 'メッセージ',
+    offstream: '今日の配信外学習',
     note: '常時表示する注記',
     session: '今回の学習時間',
     today: '今日',
@@ -74,6 +76,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: 'Status',
     timer: 'Time left',
     message: 'Message',
+    offstream: 'Off-stream study today',
     note: 'Always-visible note',
     session: 'Session time',
     today: 'Today',
@@ -148,9 +151,10 @@ export function materializeSession(session: SessionState, now = Date.now()): Ses
   const currentDay = localDayKey(now);
   const storedDay = session.dayKey || currentDay;
   const dailySeconds = session.dailySeconds ?? (session.totalSeconds > 0 ? { [currentDay]: session.totalSeconds } : {});
+  const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
   const normalized = storedDay === currentDay
-    ? { ...session, dayKey: currentDay, dailySeconds }
-    : { ...session, dayKey: currentDay, todaySeconds: 0, dailySeconds };
+    ? { ...session, dayKey: currentDay, dailySeconds, offstreamTodaySeconds }
+    : { ...session, dayKey: currentDay, todaySeconds: 0, offstreamTodaySeconds: 0, dailySeconds };
   if (normalized.phase !== 'study' || !normalized.tracking) return normalized;
   const elapsed = Math.max(0, Math.floor((now - session.lastCheckpointAt) / 1000));
   if (!elapsed) return normalized;

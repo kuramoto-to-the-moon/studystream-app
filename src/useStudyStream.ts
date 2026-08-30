@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppState, SessionState } from './model';
-import { materializeSession, remainingSeconds } from './model';
+import { materializeSession, remainingSeconds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -16,9 +16,12 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       settings: {
         ...next.settings,
         note: next.settings.note ?? '',
-        widgets: next.settings.widgets.some((widget) => widget.id === 'note')
-          ? next.settings.widgets
-          : [...next.settings.widgets, { id: 'note', visible: true }],
+        widgets: [
+          ...next.settings.widgets,
+          ...widgetOrder
+            .filter((id) => !next.settings.widgets.some((widget) => widget.id === id))
+            .map((id) => ({ id, visible: true })),
+        ],
       },
     };
     const session = withDefaults.session;
@@ -189,6 +192,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         return {
           ...session,
           todaySeconds: session.todaySeconds + addedSeconds,
+          offstreamTodaySeconds: (session.offstreamTodaySeconds ?? 0) + addedSeconds,
           totalSeconds: session.totalSeconds + addedSeconds,
           dailySeconds: {
             ...session.dailySeconds,
