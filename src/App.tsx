@@ -124,7 +124,7 @@ function ControlPage({
   now: number;
   actions: ReturnType<typeof useStudyStream>['actions'];
 }) {
-  const copy = uiCopy[state.settings.language];
+  const copy = uiCopy.ja;
   const key = phaseKey(session);
   const isPaused = session.phase === 'study' && !session.tracking;
   const enterStudy = () => {
@@ -172,9 +172,9 @@ function ControlPage({
         </div>
 
         <div className="session-stats">
-          <div><strong>{formatDuration(session.sessionSeconds, state.settings.language)}</strong><span>{copy.session}</span></div>
-          <div><strong>{formatDuration(session.todaySeconds, state.settings.language)}</strong><span>{copy.today}</span></div>
-          <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
+          <div><strong>{formatDuration(session.sessionSeconds, 'ja')}</strong><span>{copy.session}</span></div>
+          <div><strong>{formatDuration(session.todaySeconds, 'ja')}</strong><span>{copy.today}</span></div>
+          <div><strong>{formatDuration(session.totalSeconds, 'ja')}</strong><span>{copy.total}</span></div>
         </div>
       </section>
     </main>
@@ -194,7 +194,8 @@ function EditorPage({
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
 }) {
-  const language = state.settings.language;
+  const viewerLanguage = state.settings.language;
+  const interfaceLanguage = 'ja' as const;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
@@ -266,7 +267,7 @@ function EditorPage({
               <div className="visibility-list">
                 {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
-                    <span>{widgetLabels[language][widget.id]}</span>
+                    <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <input
                       type="checkbox"
                       checked={widget.visible}
@@ -312,7 +313,7 @@ function EditorPage({
                         value={metricKinds[slotId]}
                         onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
                       >
-                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[language][kind]}</option>)}
+                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[interfaceLanguage][kind]}</option>)}
                       </select>
                     </div>
                   );
@@ -340,20 +341,20 @@ function EditorPage({
                   className={messageEditorKey === messageKey ? 'active' : ''}
                   onClick={() => setMessageEditorKey(messageKey)}
                 >
-                  <strong>{messageLabels[language][messageKey]}</strong>
-                  <small>{currentMessageKey === messageKey ? '現在の状態' : messageDescriptions[language][messageKey]}</small>
+                  <strong>{messageLabels[interfaceLanguage][messageKey]}</strong>
+                  <small>{currentMessageKey === messageKey ? '現在の状態' : messageDescriptions[interfaceLanguage][messageKey]}</small>
                 </button>
               ))}
             </div>
             <div className="message-editor-box">
               <div className="message-editor-heading">
-                <strong>{messageLabels[language][messageEditorKey]}</strong>
-                <span>{messageDescriptions[language][messageEditorKey]}</span>
+                <strong>{messageLabels[interfaceLanguage][messageEditorKey]}</strong>
+                <span>{messageDescriptions[interfaceLanguage][messageEditorKey]}</span>
               </div>
               <textarea
                 rows={4}
                 maxLength={220}
-                aria-label={`${messageLabels[language][messageEditorKey]}の表示文`}
+                aria-label={`${messageLabels[interfaceLanguage][messageEditorKey]}の表示文`}
                 value={state.settings.messages[messageEditorKey]}
                 onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: event.target.value } })}
               />
@@ -367,7 +368,7 @@ function EditorPage({
                   }}
                 >
                   <option value="">定型文から選ぶ…</option>
-                  {messageTemplates[language][messageEditorKey].map((template) => <option key={template} value={template}>{template}</option>)}
+                  {messageTemplates[viewerLanguage][messageEditorKey].map((template) => <option key={template} value={template}>{template}</option>)}
                 </select>
                 <small>{state.settings.messages[messageEditorKey].length}/220文字</small>
               </div>
