@@ -17,6 +17,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         ...next.settings,
         note: next.settings.note ?? '',
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
+        showMetricSeconds: next.settings.showMetricSeconds ?? false,
         widgets: [
           ...next.settings.widgets,
           ...widgetOrder

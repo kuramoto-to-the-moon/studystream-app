@@ -64,9 +64,9 @@ export function Board({
       </strong>
     </span>
   ) : (
-    <span className="board-metric">
+    <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
       <span>{metricLabels[language][kind]}</span>
-      <strong>{formatDuration(metricSeconds(session, kind, now), language)}</strong>
+      <strong>{formatDuration(metricSeconds(session, kind, now), language, settings.showMetricSeconds ?? false)}</strong>
     </span>
   );
 

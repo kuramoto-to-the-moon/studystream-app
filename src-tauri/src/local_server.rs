@@ -223,6 +223,7 @@ fn default_state() -> Value {
             "backgroundOpacity": 0.9,
             "textColor": "#ffffff",
             "textOpacity": 1.0,
+            "showMetricSeconds": false,
             "note": "",
             "offstreamEnabled": false,
             "metricKinds": { "session": "session", "today": "today", "streaks": "streaks" },

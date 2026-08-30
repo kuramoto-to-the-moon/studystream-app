@@ -39,6 +39,7 @@ const initialState = {
     backgroundOpacity: 0.9,
     textColor: '#ffffff',
     textOpacity: 1,
+    showMetricSeconds: false,
     note: '',
     offstreamEnabled: false,
     metricKinds: { session: 'session', today: 'today', streaks: 'streaks' },

@@ -506,6 +506,14 @@ function EditorPage({
                   );
                 })}
               </div>
+              <label className="metric-seconds-option">
+                <span>集計時間を秒まで表示</span>
+                <input
+                  type="checkbox"
+                  checked={state.settings.showMetricSeconds ?? false}
+                  onChange={(event) => patchSettings({ showMetricSeconds: event.target.checked })}
+                />
+              </label>
             </section>
             <details className="settings-section streak-manager">
               <summary><span><strong>その他の項目</strong><small>日数や回数などを管理</small></span><span aria-hidden="true">開く</span></summary>

@@ -531,6 +531,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.board-metric.with-seconds strong { font-size: clamp(13px, 2.8cqw, 18px); }
 .board-streak > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-vertical {
   grid-template-columns: minmax(0, 1fr);
@@ -742,6 +743,21 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   color: var(--ink);
   font-size: 11px;
 }
+.metric-seconds-option {
+  max-width: 560px;
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.metric-seconds-option input { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--accent); }
 .streak-manager { padding: 0; overflow: hidden; }
 .streak-manager summary { min-height: 54px; padding: 0 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--ink); cursor: pointer; list-style: none; }
 .streak-manager summary::-webkit-details-marker { display: none; }
