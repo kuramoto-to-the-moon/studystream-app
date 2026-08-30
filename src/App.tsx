@@ -156,6 +156,20 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
                 </div>
               </div>
               <p>視聴者表示の色には影響しません</p>
+              <div className="app-settings-group">
+                <span>インターバル</span>
+                <div className="interval-options">
+                  <label>
+                    <span>学習</span>
+                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.studyMinutes} onChange={(event) => patchSettings({ studyMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
+                  </label>
+                  <label>
+                    <span>休憩</span>
+                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.breakMinutes} onChange={(event) => patchSettings({ breakMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
+                  </label>
+                </div>
+              </div>
+              <p>次に開始する学習・休憩から反映します</p>
             </div>
             </details>
           </div>
