@@ -550,15 +550,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   .editor-canvas.preview-vertical .board { height: max(220px, min(520px, calc(100vh - 254px))); }
 }
 .inspector {
-  position: sticky;
-  top: 150px;
+  position: static;
   align-self: start;
   overflow: visible;
 }
 .inspector-tabs {
-  position: sticky;
-  z-index: 2;
-  top: 0;
   height: 52px;
   padding: 6px;
   background: var(--surface);
