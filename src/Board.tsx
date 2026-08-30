@@ -110,14 +110,22 @@ export function Board({
 
   return (
     <div
-      className={`board board-${settings.layout} board-lang-${language}`}
+      className={`board board-${settings.layout} board-lang-${language}${noteWidgets.length > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${noteWidgets.length}` : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
       {primaryWidgets.length > 0 && <div className="board-row board-primary-row">{primaryWidgets.map(renderWidget)}</div>}
       {messageWidgets.length > 0 && <div className="board-row board-message-row">{messageWidgets.map(renderWidget)}</div>}
-      {noteWidgets.length > 0 && <div className="board-row board-note-row">{noteWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
+      {noteWidgets.length > 0 && (
+        <div className="board-auxiliary-rows">
+          {noteWidgets.map((widget) => (
+            <div key={`row-${widget.id}`} className={`board-row board-note-row board-note-row-${widget.id}`}>
+              {renderWidget(widget)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
