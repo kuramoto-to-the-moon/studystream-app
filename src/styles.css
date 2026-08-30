@@ -378,15 +378,16 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   align-items: center;
 }
 .widget-content { min-width: 0; max-width: 100%; }
-.widget-timer .widget-content { width: 100%; }
+.widget-timer .widget-content { width: 100%; container-type: inline-size; }
 .board-horizontal .board-row { min-width: 0; min-height: 0; display: flex; }
 .board-horizontal .board-primary-row { flex: 4 1 0; }
 .board-horizontal .board-message-row { flex: 2.4 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
 .board-horizontal .board-note-row { flex: 1.8 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
 .board-horizontal .board-metrics-row { flex: 3.6 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
 .board-horizontal .board-primary-row .widget-state { flex: 1 1 50%; }
-.board-horizontal .board-primary-row .widget-timer { flex: 1 1 50%; justify-content: flex-end; container-type: inline-size; }
+.board-horizontal .board-primary-row .widget-timer { flex: 1 1 50%; justify-content: flex-end; }
 .board-horizontal .board-primary-row .board-widget:only-child { flex-basis: 100%; }
+.board-horizontal .board-primary-row .widget-timer:only-child .widget-content { width: 50%; }
 .board-horizontal .board-message-row .board-widget,
 .board-horizontal .board-note-row .board-widget,
 .board-horizontal .board-metrics-row .board-widget { flex: 1 1 0; }
