@@ -387,7 +387,12 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .board-horizontal .board-primary-row .widget-state { flex: 1 1 50%; }
 .board-horizontal .board-primary-row .widget-timer { flex: 1 1 50%; justify-content: flex-end; }
 .board-horizontal .board-primary-row .board-widget:only-child { flex-basis: 100%; }
-.board-horizontal .board-primary-row .widget-timer:only-child .widget-content { width: 50%; }
+.board-horizontal .board-primary-row .widget-timer:only-child .widget-content {
+  width: calc(50% - clamp(12px, 4cqw, 24px));
+}
+.board-horizontal .board-primary-row .widget-timer:only-child { justify-content: flex-start; }
+.board-horizontal .board-primary-row .widget-timer:only-child .board-timer-wrap { align-items: flex-start; }
+.board-horizontal .board-primary-row .widget-timer:only-child .board-timer { text-align: left; }
 .board-horizontal .board-message-row .board-widget,
 .board-horizontal .board-note-row .board-widget,
 .board-horizontal .board-metrics-row .board-widget { flex: 1 1 0; }
