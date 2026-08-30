@@ -50,6 +50,18 @@ export function Board({
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
   const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
 
+  const durationContent = (seconds: number) => {
+    if (!settings.showMetricSeconds) return <strong>{formatDuration(seconds, language)}</strong>;
+    const hours = Math.floor(Math.max(0, seconds) / 3600);
+    const lengthClass = hours >= 10_000 ? ' is-very-long' : hours >= 100 ? ' is-long' : '';
+    return (
+      <span className={`board-metric-time${lengthClass}`}>
+        <strong>{formatDuration(seconds, language)}</strong>
+        <small>{Math.max(0, Math.floor(seconds)) % 60}{language === 'ja' ? '秒' : 's'}</small>
+      </span>
+    );
+  };
+
   const metricContent = (kind: MetricKind) => kind === 'streaks' ? (
     <span className="board-metric board-streak">
       <span>{currentStreak?.name || metricLabels[language].streaks}</span>
@@ -66,7 +78,7 @@ export function Board({
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
       <span>{metricLabels[language][kind]}</span>
-      <strong>{formatDuration(metricSeconds(session, kind, now), language, settings.showMetricSeconds ?? false)}</strong>
+      {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
 

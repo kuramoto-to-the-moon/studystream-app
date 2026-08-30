@@ -531,7 +531,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.board-metric.with-seconds strong { font-size: clamp(15px, 3.2cqw, 21px); letter-spacing: 0; }
+.board-metric-time { min-width: 0; max-width: 100%; overflow: hidden; display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.board-metric.with-seconds .board-metric-time strong { flex: 0 1 auto; font-size: clamp(15px, 3.1cqw, 20px); letter-spacing: -.02em; }
+.board-metric-time small { flex: 0 0 auto; color: color-mix(in srgb, var(--board-text) 70%, transparent); font-size: clamp(9px, 1.7cqw, 11px); font-weight: 750; }
+.board-metric.with-seconds .board-metric-time.is-long strong { font-size: clamp(13px, 2.6cqw, 17px); }
+.board-metric.with-seconds .board-metric-time.is-very-long strong { font-size: clamp(12px, 2.25cqw, 14px); }
 .board-streak > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-vertical {
   grid-template-columns: minmax(0, 1fr);

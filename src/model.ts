@@ -199,14 +199,10 @@ export function formatClock(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-export function formatDuration(seconds: number, language: Language, includeSeconds = false) {
+export function formatDuration(seconds: number, language: Language) {
   const safe = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(safe / 3600);
   const minutes = Math.floor((safe % 3600) / 60);
-  const secs = safe % 60;
-  if (includeSeconds) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  }
   if (language === 'en') return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return hours > 0 ? `${hours}時間${minutes}分` : `${minutes}分`;
 }

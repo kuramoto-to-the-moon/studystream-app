@@ -507,7 +507,7 @@ function EditorPage({
                 })}
               </div>
               <label className="metric-seconds-option">
-                <span><strong>集計時間を秒まで表示</strong><small>オンにすると「時:分:秒」で表示します</small></span>
+                <span><strong>集計時間を秒まで表示</strong><small>秒は小さく分けて表示します</small></span>
                 <input
                   type="checkbox"
                   checked={state.settings.showMetricSeconds ?? false}
