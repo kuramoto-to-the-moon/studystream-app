@@ -205,8 +205,7 @@ export function formatDuration(seconds: number, language: Language, includeSecon
   const minutes = Math.floor((safe % 3600) / 60);
   const secs = safe % 60;
   if (includeSeconds) {
-    if (language === 'en') return hours > 0 ? `${hours}h ${minutes}m ${secs}s` : minutes > 0 ? `${minutes}m ${secs}s` : `${secs}s`;
-    return hours > 0 ? `${hours}時間${minutes}分${secs}秒` : minutes > 0 ? `${minutes}分${secs}秒` : `${secs}秒`;
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
   if (language === 'en') return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return hours > 0 ? `${hours}時間${minutes}分` : `${minutes}分`;
