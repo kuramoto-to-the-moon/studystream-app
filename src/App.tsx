@@ -193,14 +193,13 @@ function ControlPage({
           <h1>現在のセッション</h1>
           <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
         </div>
-        <div className="session-page-actions">
-          <span>操作はOBSの表示にすぐ反映されます</span>
-          {session.phase !== 'idle' && (
+        {session.phase !== 'idle' && (
+          <div className="session-page-actions">
             <button type="button" className="session-finish-button" onClick={actions.finish}>
               セッションを終了
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </header>
       <section className="panel session-panel">
         <div className="phase-summary">
