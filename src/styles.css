@@ -727,7 +727,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   font-size: 9px;
 }
 .message-editor-footer small { flex: 0 0 auto; color: var(--muted); font-size: 9px; }
-.persistent-note-section { padding-top: 18px; border-top: 1px solid var(--line); }
+.persistent-note-section { padding-top: 0; border-top: 0; }
 .persistent-note-input {
   width: 100%;
   min-height: 74px;
