@@ -445,8 +445,8 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .board-horizontal .board-primary-row { flex: 4 1 0; }
 .board-horizontal .board-message-row { flex: 2.4 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
 .board-horizontal .board-metrics-row { flex: 3.6 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
-.board-horizontal .board-auxiliary-rows { flex: 0 0 44px; min-height: 0; display: flex; flex-direction: column; }
-.board-horizontal.board-auxiliary-rows-2 .board-auxiliary-rows { flex-basis: 88px; }
+.board-horizontal .board-auxiliary-rows { flex: 0 0 52px; min-height: 0; display: flex; flex-direction: column; }
+.board-horizontal.board-auxiliary-rows-2 .board-auxiliary-rows { flex-basis: 104px; }
 .board-horizontal .board-note-row { flex: 1 1 0; border-top: 1px solid color-mix(in srgb, var(--board-text) 24%, transparent); }
 .board-horizontal .board-primary-row .widget-state { flex: 1 1 50%; }
 .board-horizontal .board-primary-row .widget-timer { flex: 1 1 50%; justify-content: flex-end; }
@@ -568,9 +568,9 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .overlay-root .board-horizontal.board-has-auxiliary-row {
   height: auto;
   align-self: start;
-  aspect-ratio: 600 / 224;
+  aspect-ratio: 600 / 232;
 }
-.overlay-root .board-horizontal.board-auxiliary-rows-2 { aspect-ratio: 600 / 268; }
+.overlay-root .board-horizontal.board-auxiliary-rows-2 { aspect-ratio: 600 / 284; }
 .overlay-loading { position: fixed; inset: 0; color: transparent; background: transparent; }
 .app-loading { min-height: 100vh; display: grid; place-items: center; color: var(--ink); font-size: 20px; font-weight: 800; }
 
@@ -622,11 +622,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .editor-canvas.preview-horizontal .board { width: min(100%, 600px); height: auto; aspect-ratio: 600 / 180; }
 .preview-horizontal .board-horizontal.board-has-auxiliary-row,
 .editor-canvas.preview-horizontal .board-horizontal.board-has-auxiliary-row {
-  aspect-ratio: 600 / 224;
+  aspect-ratio: 600 / 232;
 }
 .preview-horizontal .board-horizontal.board-auxiliary-rows-2,
 .editor-canvas.preview-horizontal .board-horizontal.board-auxiliary-rows-2 {
-  aspect-ratio: 600 / 268;
+  aspect-ratio: 600 / 284;
 }
 .editor-canvas.preview-vertical { min-height: 580px; }
 .editor-canvas.preview-vertical .board { width: min(100%, 320px); height: 520px; }

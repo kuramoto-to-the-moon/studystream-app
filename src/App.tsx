@@ -268,7 +268,7 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
     || (widget.id === 'offstream' && state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0)
   )).length;
 
-  return { width: 600, height: 180 + auxiliaryRows * 44 };
+  return { width: 600, height: 180 + auxiliaryRows * 52 };
 }
 
 function ControlPage({
