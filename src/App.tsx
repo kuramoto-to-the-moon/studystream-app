@@ -669,7 +669,7 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
   return (
     <div className="streak-editor">
       <div className="streak-editor-heading">
-        <div><strong>登録した項目</strong><small>表示中の項目は6秒ごとに切り替わります</small></div>
+        <div><strong>登録した項目</strong><small>集計表示で「その他の項目」を選んだ枠に表示されます。複数ある場合は6秒ごとに切り替わります</small></div>
         <button type="button" className="add-streak-button" onClick={addItem}>＋ 追加</button>
       </div>
       {state.settings.streaks.length > 0 ? (
@@ -761,9 +761,6 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
             </div>
           )}
           <button type="button" className="remove-streak-button" onClick={removeItem}>
-            <svg aria-hidden="true" viewBox="0 0 20 20">
-              <path d="M4.5 6h11M8 3.75h4M6.2 6l.55 10h6.5l.55-10M8.35 8.5v5M11.65 8.5v5" />
-            </svg>
             <span>{streak.name.trim() ? `${streak.name.trim()}を削除` : 'この項目を削除'}</span>
           </button>
         </div>

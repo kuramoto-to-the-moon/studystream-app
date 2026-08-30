@@ -983,13 +983,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   color: var(--danger);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   font-size: 10px;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
-.remove-streak-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
 .remove-streak-button:hover { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger-hover); }
 
 /* Native selects share one quiet, compact treatment across the editor. */
