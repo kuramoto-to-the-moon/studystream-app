@@ -59,15 +59,19 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   position: sticky;
   z-index: 30;
   top: 0;
-  min-height: 72px;
-  padding: 0 clamp(20px, 4vw, 52px);
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+.app-header-inner {
+  width: min(1320px, calc(100% - 48px));
+  min-height: 72px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 24px;
 }
+.app-header-control .app-header-inner { width: min(680px, calc(100% - 48px)); }
 .wordmark {
   width: max-content;
   border: 0;
@@ -79,11 +83,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   letter-spacing: -.055em;
   cursor: pointer;
 }
-.header-tools { justify-self: end; display: flex; align-items: center; gap: 12px; }
-.save-status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; font-weight: 650; }
-.connection-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
-.connection-dot.online { background: var(--accent); }
-.app-settings { position: relative; }
+.app-settings { position: relative; justify-self: end; }
 .app-settings summary {
   min-height: 34px;
   border: 1px solid var(--line);
@@ -150,7 +150,6 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .panel-heading > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .panel-heading h2 { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
 .panel-heading p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
-.panel-heading > span { flex: 0 0 auto; border-radius: 999px; padding: 4px 8px; background: var(--surface-muted); color: var(--muted); font-size: 9px; font-weight: 750; }
 
 .phase-summary {
   min-height: 102px;
@@ -778,7 +777,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   .inspector { position: static; max-height: none; overflow: hidden; }
 }
 @media (max-width: 720px) {
-  .app-header { min-height: 68px; grid-template-columns: 1fr auto; }
+  .app-header-inner, .app-header-control .app-header-inner { width: min(100% - 24px, 720px); min-height: 68px; }
   .page { width: min(100% - 24px, 720px); padding: 16px 0 24px; }
   .session-panel, .editor-preview-panel { padding: 18px; }
   .phase-summary { min-height: 90px; padding: 16px 0; }

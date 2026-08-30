@@ -26,7 +26,7 @@ export function App() {
 }
 
 function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
-  const { state, displaySession, now, connected, update, actions } = store;
+  const { state, displaySession, now, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = window.localStorage.getItem('studystream-app-theme');
@@ -56,13 +56,9 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
-        <div className="header-tools">
-          <div className="save-status" title={connected ? '設定と学習記録はこの端末に保存されています' : 'ローカル保存に再接続しています'}>
-            <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
-            <span>{connected ? '端末に保存済み' : '再接続中'}</span>
-          </div>
+      <header className={`app-header app-header-${page}`}>
+        <div className="app-header-inner">
+          <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
           <details className="app-settings">
             <summary>
               <svg aria-hidden="true" viewBox="0 0 20 20">
@@ -136,7 +132,6 @@ function ControlPage({
       <section className="panel session-panel">
         <div className="panel-heading">
           <div><h2>現在のセッション</h2><p>操作はOBSの表示にすぐ反映されます</p></div>
-          <span>{session.tracking ? '計測中' : session.phase === 'study' ? '一時停止中' : session.phase === 'break' ? '休憩中' : '開始前'}</span>
         </div>
         <div className="phase-summary">
           <div>
