@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, Phase, WidgetId, WidgetSize } from './model';
+import type { AppState, WidgetId, WidgetSize } from './model';
 import { formatClock, formatDuration, phaseKey, remainingSeconds, uiCopy, widgetLabels } from './model';
 import { useStudyStream } from './useStudyStream';
 
@@ -97,7 +97,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
       </header>
 
       {page === 'control' ? (
-        <ControlPage state={state} session={displaySession} now={now} actions={actions} patchSettings={patchSettings} />
+        <ControlPage state={state} session={displaySession} now={now} actions={actions} onEdit={() => setPage('editor')} />
       ) : (
         <EditorPage
           state={state}
@@ -122,16 +122,17 @@ function ControlPage({
   session,
   now,
   actions,
-  patchSettings,
+  onEdit,
 }: {
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
   actions: ReturnType<typeof useStudyStream>['actions'];
-  patchSettings: (changes: Partial<AppState['settings']>) => void;
+  onEdit: () => void;
 }) {
   const copy = uiCopy[state.settings.language];
   const key = phaseKey(session);
+  const [previewBackdrop, setPreviewBackdrop] = useState<'checker' | 'light' | 'dark'>('checker');
   const enterStudy = () => {
     if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
     else if (!session.tracking) actions.toggleTracking();
@@ -140,11 +141,17 @@ function ControlPage({
   return (
     <main className="page control-page">
       <section className="panel session-panel">
+        <div className="control-section-title">
+          <span className="section-number">1</span>
+          <div>
+            <h1>配信操作</h1>
+            <p>いまの状態を選択します</p>
+          </div>
+        </div>
         <div className="phase-summary">
           <div>
             <div className="phase-label-row">
-              <p className="eyebrow">CURRENT SESSION</p>
-              {session.phase !== 'idle' && <button type="button" className="finish-session" onClick={actions.finish}>終了</button>}
+              <p className="eyebrow">現在の状態</p>
             </div>
             <h1>{copy[key]}</h1>
           </div>
@@ -171,33 +178,39 @@ function ControlPage({
           <div><strong>{formatDuration(session.todaySeconds, state.settings.language)}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
         </div>
+        {session.phase !== 'idle' && (
+          <button type="button" className="finish-session" onClick={actions.finish}>現在のセッションを終了</button>
+        )}
       </section>
 
       <section className="panel preview-panel">
-        <div className="section-heading compact">
-          <div><p className="eyebrow">OBS PREVIEW</p><h2>OBSプレビュー</h2></div>
+        <div className="control-section-title preview-title">
+          <span className="section-number">2</span>
+          <div>
+            <h2>視聴者表示</h2>
+            <p>OBSに現在表示されている内容です</p>
+          </div>
+          <span className="sync-status"><span aria-hidden="true" />OBSと同期中</span>
         </div>
-        <div className="preview-controls" aria-label="視聴者表示の配色">
-          <label>形
-            <select value={state.settings.layout} onChange={(event) => patchSettings({ layout: event.target.value as 'horizontal' | 'vertical' })}>
-              <option value="horizontal">横長</option>
-              <option value="vertical">縦長</option>
-            </select>
-          </label>
-          <label>背景色<input type="color" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} /></label>
-          <label className="opacity-control">不透明度
-            <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
-            <output>{Math.round(state.settings.backgroundOpacity * 100)}%</output>
-          </label>
-          <span>文字：自動（{state.settings.textColor.toLowerCase() === '#ffffff' ? '白' : '黒'}）</span>
+        <div className="preview-toolbar" aria-label="プレビューの確認背景">
+          <span>透過確認用の下地</span>
+          <div className="backdrop-options">
+            <button type="button" className={previewBackdrop === 'checker' ? 'active' : ''} onClick={() => setPreviewBackdrop('checker')}>市松</button>
+            <button type="button" className={previewBackdrop === 'light' ? 'active' : ''} onClick={() => setPreviewBackdrop('light')}>白</button>
+            <button type="button" className={previewBackdrop === 'dark' ? 'active' : ''} onClick={() => setPreviewBackdrop('dark')}>黒</button>
+          </div>
+          <span className="preview-note">この下地はOBSには表示されません</span>
         </div>
-        <div className={`preview-canvas preview-${state.settings.layout}`}>
+        <div className={`preview-canvas preview-${state.settings.layout} backdrop-${previewBackdrop}`}>
           <Board state={state} session={session} now={now} />
         </div>
         <div className="obs-url">
           <div><span>OBS Browser Source</span><code>http://127.0.0.1:47831/overlay</code></div>
           <button type="button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>URLをコピー</button>
         </div>
+        <button type="button" className="edit-board-link" onClick={onEdit}>
+          色・文字・表示項目は「ボード編集」で変更できます
+        </button>
       </section>
     </main>
   );
@@ -239,7 +252,6 @@ function EditorPage({
       <section className="panel editor-preview-panel">
         <div className="section-heading compact">
           <div>
-            <p className="eyebrow">BOARD EDITOR</p>
             <h1>視聴者表示を直接編集</h1>
           </div>
           <span className="helper-text">要素を選択、またはドラッグして移動</span>
@@ -289,7 +301,7 @@ function EditorPage({
 
         {section === 'widget' && (
           <div className="inspector-content">
-            <p className="eyebrow">SELECTED WIDGET</p>
+            <p className="eyebrow">選択中の項目</p>
             <h2>{widgetLabels[language][selected]}</h2>
             <Field label="表示サイズ">
               <div className="segmented">
@@ -310,7 +322,7 @@ function EditorPage({
 
         {section === 'message' && (
           <div className="inspector-content">
-            <p className="eyebrow">MESSAGE</p>
+            <p className="eyebrow">メッセージ設定</p>
             <h2>状態別メッセージ</h2>
             <Field label="現在の状態">
               <select value={messageKey} disabled>
@@ -331,7 +343,7 @@ function EditorPage({
 
         {section === 'appearance' && (
           <div className="inspector-content">
-            <p className="eyebrow">APPEARANCE</p>
+            <p className="eyebrow">表示設定</p>
             <h2>ボードの外観</h2>
             <Field label="形">
               <div className="segmented">
