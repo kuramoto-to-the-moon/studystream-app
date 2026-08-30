@@ -893,6 +893,8 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .message-editor-footer { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .message-editor-footer select {
+  flex: 0 0 auto;
+  width: min(220px, calc(100% - 64px));
   min-width: 0;
   height: 30px;
   border: 1px solid var(--line-strong);
