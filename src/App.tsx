@@ -90,8 +90,14 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           <div className="header-navigation">
             <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
             <nav className="app-nav" aria-label="メイン画面">
-              <button type="button" className={page === 'control' ? 'active' : ''} aria-current={page === 'control' ? 'page' : undefined} onClick={() => navigate('control')}>ホーム</button>
-              <button type="button" className={page === 'editor' ? 'active' : ''} aria-current={page === 'editor' ? 'page' : undefined} onClick={() => navigate('editor')}>ボード編集</button>
+              <button type="button" className={page === 'control' ? 'active' : ''} aria-current={page === 'control' ? 'page' : undefined} onClick={() => navigate('control')}>
+                <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m3.5 9 6.5-5.5L16.5 9v7.5h-5v-4h-3v4h-5Z" /></svg>
+                <span>ホーム</span>
+              </button>
+              <button type="button" className={page === 'editor' ? 'active' : ''} aria-current={page === 'editor' ? 'page' : undefined} onClick={() => navigate('editor')}>
+                <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="3.5" width="14" height="13" rx="1.5" /><path d="M3 8h14M8 8v8.5" /></svg>
+                <span>ボード編集</span>
+              </button>
             </nav>
           </div>
           <div className="header-actions">

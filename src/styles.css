@@ -85,19 +85,23 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   cursor: pointer;
 }
 .header-navigation { min-width: 0; display: flex; align-items: center; gap: 18px; }
-.app-nav { padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); display: flex; gap: 2px; }
+.app-nav { display: flex; align-items: center; gap: 4px; }
 .app-nav button {
-  min-height: 28px;
+  min-height: 38px;
   border: 0;
-  border-radius: 5px;
-  padding: 0 10px;
+  border-radius: 7px;
+  padding: 0 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }
-.app-nav button:hover { color: var(--ink); }
+.app-nav button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.app-nav button:hover { background: var(--surface-hover); color: var(--ink); }
 .app-nav button.active { background: var(--active-soft); color: var(--ink); font-weight: 800; }
 .header-actions { display: flex; align-items: center; gap: 6px; }
 .header-obs-button {
