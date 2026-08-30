@@ -495,25 +495,39 @@ function EditorPage({
               <h2>色・レイアウト</h2>
               <p>配信画面に合わせて形と色を整えます</p>
             </div>
-            <section className="settings-section">
+            <section className="settings-section appearance-layout-section">
               <div className="settings-section-heading"><strong>レイアウト</strong><span>OBSで使う縦横比に合わせます</span></div>
-              <div className="segmented">
-                <button className={state.settings.layout === 'horizontal' ? 'active' : ''} onClick={() => patchSettings({ layout: 'horizontal' })}>横長</button>
-                <button className={state.settings.layout === 'vertical' ? 'active' : ''} onClick={() => patchSettings({ layout: 'vertical' })}>縦長</button>
+              <div className="layout-options" role="group" aria-label="レイアウト">
+                <button className={state.settings.layout === 'horizontal' ? 'active' : ''} aria-pressed={state.settings.layout === 'horizontal'} onClick={() => patchSettings({ layout: 'horizontal' })}>
+                  <span className="layout-option-preview horizontal" aria-hidden="true" />
+                  <span>横長</span>
+                </button>
+                <button className={state.settings.layout === 'vertical' ? 'active' : ''} aria-pressed={state.settings.layout === 'vertical'} onClick={() => patchSettings({ layout: 'vertical' })}>
+                  <span className="layout-option-preview vertical" aria-hidden="true" />
+                  <span>縦長</span>
+                </button>
               </div>
             </section>
-            <section className="settings-section">
+            <section className="settings-section appearance-color-section">
               <div className="settings-section-heading"><strong>色と透過</strong><span>背景と文字を個別に調整できます</span></div>
-              <div className="color-fields">
-                <Field label="背景色"><input type="color" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} /></Field>
-                <Field label="文字色"><input type="color" value={state.settings.textColor} onChange={(event) => patchSettings({ textColor: event.target.value })} /></Field>
+              <div className="color-control-list">
+                <div className="color-control-row">
+                  <span className="color-control-name">背景</span>
+                  <label className="color-swatch" style={{ backgroundColor: state.settings.background }} title="背景色を選ぶ">
+                    <input type="color" aria-label="背景色" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} />
+                  </label>
+                  <input className="opacity-range" aria-label="背景の不透明度" type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
+                  <output>{Math.round(state.settings.backgroundOpacity * 100)}%</output>
+                </div>
+                <div className="color-control-row">
+                  <span className="color-control-name">文字</span>
+                  <label className="color-swatch" style={{ backgroundColor: state.settings.textColor }} title="文字色を選ぶ">
+                    <input type="color" aria-label="文字色" value={state.settings.textColor} onChange={(event) => patchSettings({ textColor: event.target.value })} />
+                  </label>
+                  <input className="opacity-range" aria-label="文字の不透明度" type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
+                  <output>{Math.round((state.settings.textOpacity ?? 1) * 100)}%</output>
+                </div>
               </div>
-              <Field label={`背景の不透明度 ${Math.round(state.settings.backgroundOpacity * 100)}%`}>
-                <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
-              </Field>
-              <Field label={`文字の不透明度 ${Math.round((state.settings.textOpacity ?? 1) * 100)}%`}>
-                <input type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
-              </Field>
             </section>
           </div>
         )}
