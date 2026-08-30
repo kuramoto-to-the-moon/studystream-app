@@ -1,11 +1,11 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
-export type WidgetId = 'state' | 'timer' | 'message' | 'session' | 'today' | 'streaks';
+export type WidgetId = 'state' | 'timer' | 'message' | 'note' | 'session' | 'today' | 'streaks';
 export type MetricWidgetId = 'session' | 'today' | 'streaks';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
-export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'session', 'today', 'streaks'];
+export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'note', 'session', 'today', 'streaks'];
 
 export interface SessionState {
   phase: Phase;
@@ -47,6 +47,7 @@ export interface Settings {
   backgroundOpacity: number;
   textColor: string;
   textOpacity?: number;
+  note?: string;
   metricKinds?: Record<MetricWidgetId, MetricKind>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
@@ -64,6 +65,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: '状態',
     timer: '残り時間',
     message: 'メッセージ',
+    note: '常時表示する注記',
     session: '今回の学習時間',
     today: '今日',
     streaks: '継続項目',
@@ -72,6 +74,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     state: 'Status',
     timer: 'Time left',
     message: 'Message',
+    note: 'Always-visible note',
     session: 'Session time',
     today: 'Today',
     streaks: 'Streak',
@@ -82,7 +85,7 @@ export const uiCopy = {
   ja: {
     idle: '待機中',
     study: '学習中',
-    paused: '学習中',
+    paused: '一時停止中',
     break: '休憩中',
     tracking: '学習時間を計測中',
     notTracking: '学習タイマーは一時停止中',
@@ -96,7 +99,7 @@ export const uiCopy = {
   en: {
     idle: 'Ready',
     study: 'Studying',
-    paused: 'Studying',
+    paused: 'Paused',
     break: 'On break',
     tracking: 'Study time is running',
     notTracking: 'Study time is paused',

@@ -30,6 +30,7 @@ export function Board({
   const key = phaseKey(session);
   const remaining = remainingSeconds(session, now);
   const message = settings.messages[key];
+  const note = settings.note?.trim() ?? '';
   const visibleStreaks = settings.streaks.filter((item) => item.visible);
   const currentStreak = visibleStreaks.length > 0
     ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
@@ -42,7 +43,7 @@ export function Board({
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
   } as CSSProperties;
   const visibleWidgets = [...settings.widgets]
-    .filter((widget) => widget.visible)
+    .filter((widget) => widget.visible && (widget.id !== 'note' || note.length > 0))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
   const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
 
@@ -75,6 +76,7 @@ export function Board({
       </span>
     ),
     message: <span className="board-message" title={message}>{message}</span>,
+    note: <span className="board-note" title={note}>{note}</span>,
     session: metricContent(metricKinds.session),
     today: metricContent(metricKinds.today),
     streaks: metricContent(metricKinds.streaks),
@@ -92,6 +94,7 @@ export function Board({
 
   const primaryWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer');
   const messageWidgets = visibleWidgets.filter((widget) => widget.id === 'message');
+  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'note');
   const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
 
   return (
@@ -102,6 +105,7 @@ export function Board({
     >
       {primaryWidgets.length > 0 && <div className="board-row board-primary-row">{primaryWidgets.map(renderWidget)}</div>}
       {messageWidgets.length > 0 && <div className="board-row board-message-row">{messageWidgets.map(renderWidget)}</div>}
+      {noteWidgets.length > 0 && <div className="board-row board-note-row">{noteWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
     </div>
   );

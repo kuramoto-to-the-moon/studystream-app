@@ -38,6 +38,7 @@ const initialState = {
     backgroundOpacity: 0.9,
     textColor: '#ffffff',
     textOpacity: 1,
+    note: '',
     metricKinds: { session: 'session', today: 'today', streaks: 'streaks' },
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',
@@ -49,6 +50,7 @@ const initialState = {
       { id: 'state', visible: true },
       { id: 'timer', visible: true },
       { id: 'message', visible: true },
+      { id: 'note', visible: true },
       { id: 'session', visible: true },
       { id: 'today', visible: true },
       { id: 'streaks', visible: true },

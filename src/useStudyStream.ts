@@ -11,20 +11,30 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const stateRef = useRef<AppState | null>(null);
 
   const receive = useCallback((next: AppState) => {
-    const session = next.session;
+    const withDefaults: AppState = {
+      ...next,
+      settings: {
+        ...next.settings,
+        note: next.settings.note ?? '',
+        widgets: next.settings.widgets.some((widget) => widget.id === 'note')
+          ? next.settings.widgets
+          : [...next.settings.widgets, { id: 'note', visible: true }],
+      },
+    };
+    const session = withDefaults.session;
     const normalized = session.phase === 'study'
       && !session.tracking
       && session.phaseEndsAt !== null
       && session.pausedRemainingSeconds == null
       ? {
-          ...next,
+          ...withDefaults,
           session: {
             ...session,
             phaseEndsAt: null,
             pausedRemainingSeconds: remainingSeconds(session),
           },
         }
-      : next;
+      : withDefaults;
     stateRef.current = normalized;
     setState(normalized);
   }, []);
@@ -171,6 +181,21 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         pausedRemainingSeconds: null,
         lastCheckpointAt: stamp,
       })),
+    addStudyTime: (seconds: number) =>
+      changeSession((session) => {
+        const addedSeconds = Math.max(0, Math.floor(seconds));
+        if (!addedSeconds) return session;
+        const dayKey = session.dayKey;
+        return {
+          ...session,
+          todaySeconds: session.todaySeconds + addedSeconds,
+          totalSeconds: session.totalSeconds + addedSeconds,
+          dailySeconds: {
+            ...session.dailySeconds,
+            [dayKey]: (session.dailySeconds?.[dayKey] ?? 0) + addedSeconds,
+          },
+        };
+      }),
     finish: () =>
       changeSession((session, _current, stamp) => ({
         ...session,

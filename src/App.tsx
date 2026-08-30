@@ -162,18 +162,34 @@ function ControlPage({
   const copy = uiCopy.ja;
   const key = phaseKey(session);
   const isPaused = session.phase === 'study' && !session.tracking;
+  const [offstreamHours, setOffstreamHours] = useState('');
+  const [offstreamMinutes, setOffstreamMinutes] = useState('');
+  const [offstreamAdded, setOffstreamAdded] = useState(false);
+  const offstreamSeconds = (
+    Math.max(0, Number(offstreamHours) || 0) * 60
+    + Math.max(0, Number(offstreamMinutes) || 0)
+  ) * 60;
   const enterStudy = () => {
     if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
+  };
+  const addOffstreamStudy = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!offstreamSeconds) return;
+    actions.addStudyTime(offstreamSeconds);
+    setOffstreamHours('');
+    setOffstreamMinutes('');
+    setOffstreamAdded(true);
+    window.setTimeout(() => setOffstreamAdded(false), 1800);
   };
 
   return (
     <main className="page control-page">
-      <header className="page-heading">
-        <h1>現在のセッション</h1>
-        <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
-      </header>
-      <section className="panel session-panel">
-        <div className="session-toolbar">
+      <header className="page-heading control-page-header">
+        <div>
+          <h1>現在のセッション</h1>
+          <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
+        </div>
+        <div className="session-page-actions">
           <span>操作はOBSの表示にすぐ反映されます</span>
           {session.phase !== 'idle' && (
             <button type="button" className="session-finish-button" onClick={actions.finish}>
@@ -181,6 +197,8 @@ function ControlPage({
             </button>
           )}
         </div>
+      </header>
+      <section className="panel session-panel">
         <div className="phase-summary">
           <div>
             <div className="phase-label-row">
@@ -212,6 +230,17 @@ function ControlPage({
           <div><strong>{formatDuration(session.totalSeconds, 'ja')}</strong><span>{copy.total}</span></div>
         </div>
       </section>
+      <details className="panel offstream-panel">
+        <summary>
+          <span><strong>配信外の学習を追加</strong><small>今日と各期間の集計へ反映します</small></span>
+          <span aria-hidden="true">開く</span>
+        </summary>
+        <form className="offstream-form" onSubmit={addOffstreamStudy}>
+          <label><span>時間</span><input type="number" min="0" step="1" inputMode="numeric" value={offstreamHours} onChange={(event) => setOffstreamHours(event.target.value)} /></label>
+          <label><span>分</span><input type="number" min="0" max="59" step="1" inputMode="numeric" value={offstreamMinutes} onChange={(event) => setOffstreamMinutes(event.target.value)} /></label>
+          <button type="submit" disabled={!offstreamSeconds}>{offstreamAdded ? '追加しました' : '学習時間に追加'}</button>
+        </form>
+      </details>
     </main>
   );
 }
@@ -300,7 +329,7 @@ function EditorPage({
             <section className="settings-section" aria-label="基本表示">
               <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'note'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <input
@@ -408,6 +437,19 @@ function EditorPage({
                 <small>{state.settings.messages[messageEditorKey].length}/220文字</small>
               </div>
             </div>
+            <section className="settings-section persistent-note-section">
+              <div className="settings-section-heading"><strong>常時表示する注記</strong><span>状態に関係なく表示します。空欄なら表示されません</span></div>
+              <textarea
+                className="persistent-note-input"
+                rows={3}
+                maxLength={180}
+                aria-label="常時表示する注記"
+                placeholder="例：資格試験まであと30日"
+                value={state.settings.note ?? ''}
+                onChange={(event) => patchSettings({ note: event.target.value })}
+              />
+              <small className="character-count">{(state.settings.note ?? '').length}/180文字</small>
+            </section>
           </div>
         )}
 
