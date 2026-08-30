@@ -247,6 +247,32 @@ function ObsLogo() {
   );
 }
 
+function SessionActionIcon({ kind }: { kind: 'study' | 'pause' | 'resume' | 'break' }) {
+  if (kind === 'study') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20">
+        <path d="M3.25 5.25h3.5c1.55 0 2.75.8 3.25 1.6.5-.8 1.7-1.6 3.25-1.6h3.5v9.5h-3.5c-1.55 0-2.75.55-3.25 1.35-.5-.8-1.7-1.35-3.25-1.35h-3.5v-9.5Z" />
+        <path d="M10 6.85v9.25" />
+      </svg>
+    );
+  }
+
+  if (kind === 'pause') {
+    return <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 5v10M13 5v10" /></svg>;
+  }
+
+  if (kind === 'resume') {
+    return <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 5 8 5-8 5V5Z" /></svg>;
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20">
+      <path d="M4.25 6.5h9v4.25a3.75 3.75 0 0 1-3.75 3.75H8a3.75 3.75 0 0 1-3.75-3.75V6.5Z" />
+      <path d="M13.25 8h1.25a2 2 0 0 1 0 4h-1.7M3.5 16h11" />
+    </svg>
+  );
+}
+
 function VisibilityButton({ label, visible, onToggle }: { label: string; visible: boolean; onToggle: () => void }) {
   const action = visible ? '非表示にする' : '表示する';
   return (
@@ -350,13 +376,16 @@ function ControlPage({
 
         <div className="control-actions" aria-label="配信状態">
           <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} disabled={isPaused} onClick={enterStudy}>
-            学習
+            <SessionActionIcon kind="study" />
+            <span>学習</span>
           </button>
           <button type="button" className={`button${isPaused ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
-            {isPaused ? '再開' : '一時停止'}
+            <SessionActionIcon kind={isPaused ? 'resume' : 'pause'} />
+            <span>{isPaused ? '再開' : '一時停止'}</span>
           </button>
           <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
-            休憩
+            <SessionActionIcon kind="break" />
+            <span>休憩</span>
           </button>
         </div>
 
