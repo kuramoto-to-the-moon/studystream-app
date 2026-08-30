@@ -534,16 +534,10 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
               )}
             </>
           ) : (
-            <>
-              <div className="count-fields">
-                <label className="compact-field"><span>現在の数</span><input type="number" min="0" step="1" value={streak.count ?? 0} onChange={(event) => change({ count: Math.max(0, Number(event.target.value) || 0) })} /></label>
-                <label className="compact-field"><span>単位</span><input value={streak.unit || ''} maxLength={8} placeholder="回・冊・本" onChange={(event) => change({ unit: event.target.value })} /></label>
-              </div>
-              <div className="count-actions">
-                <button type="button" onClick={() => change({ count: Math.max(0, (streak.count ?? 0) - 1) })}>−1</button>
-                <button type="button" onClick={() => change({ count: (streak.count ?? 0) + 1 })}>＋1</button>
-              </div>
-            </>
+            <div className="count-fields">
+              <label className="compact-field"><span>現在の数</span><input type="number" min="0" step="1" value={streak.count ?? 0} onChange={(event) => change({ count: Math.max(0, Number(event.target.value) || 0) })} /></label>
+              <label className="compact-field"><span>単位</span><input value={streak.unit || ''} maxLength={8} placeholder="回・冊・本" onChange={(event) => change({ unit: event.target.value })} /></label>
+            </div>
           )}
           <button type="button" className="remove-streak-button" onClick={removeItem}>この項目を削除</button>
         </div>

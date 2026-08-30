@@ -478,7 +478,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   height: 52px;
   border-bottom: 1px solid var(--line);
   padding: 6px;
-  background: var(--surface-muted);
+  background: var(--surface);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
@@ -495,8 +495,8 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   cursor: pointer;
 }
 .inspector-tabs button:hover { background: var(--surface-hover); color: var(--ink); }
-.inspector-tabs button.active { background: var(--accent); color: var(--accent-foreground); }
-.inspector-tabs button.active:hover { background: var(--accent-hover); color: var(--accent-foreground); }
+.inspector-tabs button.active { background: var(--surface-muted); color: var(--ink); font-weight: 800; }
+.inspector-tabs button.active:hover { background: var(--surface-muted); color: var(--ink); }
 .inspector-content { padding: 22px; }
 .inspector-page-heading { margin-bottom: 18px; display: flex; flex-direction: column; gap: 5px; }
 .inspector-page-heading h2 { font-size: 16px; font-weight: 800; }
@@ -723,17 +723,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .weekday-picker label.active span { border-color: var(--accent); background: var(--accent); color: var(--accent-foreground); }
 .weekday-picker input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
-.count-actions { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.count-actions button {
-  min-height: 30px;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  background: var(--field);
-  font-size: 11px;
-  font-weight: 750;
-  cursor: pointer;
-}
-.count-actions button:hover { border-color: var(--muted); background: var(--surface-muted); }
 .remove-streak-button {
   margin-top: 16px;
   border: 0;
