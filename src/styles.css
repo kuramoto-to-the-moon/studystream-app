@@ -532,8 +532,15 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 @media (max-width: 720px) {
   .app-header { min-height: 68px; grid-template-columns: 1fr auto; }
   .header-tools > span:not(.connection-dot) { display: none; }
-  .page { width: min(100% - 24px, 720px); padding-top: 20px; }
+  .page { width: min(100% - 24px, 720px); padding: 16px 0 24px; }
   .session-panel, .editor-preview-panel { padding: 18px; }
+  .control-section-title { margin-bottom: 14px; }
+  .phase-summary { min-height: 90px; padding: 16px 0; }
+  .control-actions { margin-top: 14px; }
+  .session-stats { margin-top: 16px; }
+  .session-stats div { min-height: 70px; padding-block: 12px; }
+  .control-utilities { margin-top: 14px; padding-top: 14px; }
+  .open-editor-button, .copy-obs-button, .session-end-button { min-height: 48px; }
   .control-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .button { min-height: 52px; font-size: 13px; }
   .preview-canvas, .editor-canvas { min-height: 220px; padding: 14px; }
