@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Board } from './Board';
-import type { AppState, MetricKind, MetricWidgetId, Streak, WidgetId } from './model';
+import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
 import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
@@ -28,7 +28,6 @@ export function App() {
 function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   const { state, displaySession, now, connected, update, actions } = store;
   const [page, setPage] = useState<Page>('control');
-  const [selected, setSelected] = useState<WidgetId>('state');
   if (!state || !displaySession) return null;
 
   function patchState(mutator: (draft: AppState) => AppState) {
@@ -64,8 +63,6 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           state={state}
           session={displaySession}
           now={now}
-          selected={selected}
-          onSelect={setSelected}
           patchSettings={patchSettings}
           patchState={patchState}
           onBack={() => setPage('control')}
@@ -157,8 +154,6 @@ function EditorPage({
   state,
   session,
   now,
-  selected,
-  onSelect,
   patchSettings,
   patchState,
   onBack,
@@ -166,26 +161,32 @@ function EditorPage({
   state: AppState;
   session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>;
   now: number;
-  selected: WidgetId;
-  onSelect: (id: WidgetId) => void;
   patchSettings: (changes: Partial<AppState['settings']>) => void;
   patchState: (mutator: (draft: AppState) => AppState) => void;
   onBack: () => void;
 }) {
   const language = state.settings.language;
   const [section, setSection] = useState<'widget' | 'appearance' | 'message'>('widget');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
   const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
+  const currentMessageKey = phaseKey(session);
 
   return (
-    <main className="page editor-page">
+    <main className={`page editor-page${previewOpen ? '' : ' preview-hidden'}`}>
       <header className="editor-page-header">
         <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
-        <div>
-          <h1>ボード編集</h1>
-          <p>視聴者に表示する内容と見た目を調整します</p>
+        <div className="editor-title-row">
+          <div>
+            <h1>ボード編集</h1>
+            <p>視聴者に表示する内容と見た目を調整します</p>
+          </div>
+          <button type="button" className="preview-toggle-button" onClick={() => setPreviewOpen((open) => !open)}>
+            {previewOpen ? 'プレビューを閉じる' : 'プレビューを表示'}
+          </button>
         </div>
       </header>
-      <section className="panel editor-preview-panel">
+      {previewOpen && <section className="panel editor-preview-panel">
         <div className="preview-card-heading">
           <h2>視聴者表示プレビュー</h2>
           <span>OBSに表示される画面</span>
@@ -195,18 +196,15 @@ function EditorPage({
             state={state}
             session={session}
             now={now}
-            editor
-            selected={selected}
-            onSelect={onSelect}
           />
         </div>
-      </section>
+      </section>}
 
       <aside className="panel inspector">
         <div className="inspector-tabs">
-          <button className={section === 'widget' ? 'active' : ''} onClick={() => setSection('widget')}>項目</button>
-          <button className={section === 'message' ? 'active' : ''} onClick={() => setSection('message')}>文言</button>
-          <button className={section === 'appearance' ? 'active' : ''} onClick={() => setSection('appearance')}>外観</button>
+          <button className={section === 'widget' ? 'active' : ''} onClick={() => setSection('widget')}>表示内容</button>
+          <button className={section === 'message' ? 'active' : ''} onClick={() => setSection('message')}>状態メッセージ</button>
+          <button className={section === 'appearance' ? 'active' : ''} onClick={() => setSection('appearance')}>色・レイアウト</button>
         </div>
 
         {section === 'widget' && (
@@ -228,7 +226,6 @@ function EditorPage({
                             widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: event.target.checked } : item),
                           },
                         }));
-                        if (event.target.checked) onSelect(widget.id);
                       }}
                     />
                   </label>
@@ -257,7 +254,6 @@ function EditorPage({
                               widgets: current.settings.widgets.map((item) => item.id === slotId ? { ...item, visible } : item),
                             },
                           }));
-                          if (visible) onSelect(slotId);
                         }}
                       />
                       <span>枠 {index + 1}</span>
@@ -286,18 +282,47 @@ function EditorPage({
           <div className="inspector-content">
             <p className="eyebrow">メッセージ設定</p>
             <h2>状態別メッセージ</h2>
-            <p className="settings-note">各状態で視聴者に表示する文言を設定します。</p>
-            {(['study', 'paused', 'break', 'idle'] as const).map((messageKey) => (
-              <Field key={messageKey} label={messageLabels[language][messageKey]}>
-                <textarea
-                  rows={3}
-                  maxLength={220}
-                  value={state.settings.messages[messageKey]}
-                  onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageKey]: event.target.value } })}
-                />
-                <small>{state.settings.messages[messageKey].length}/220文字</small>
-              </Field>
-            ))}
+            <p className="settings-note">編集する状態を選んでください。現在の状態に限らず変更できます。</p>
+            <div className="message-state-grid">
+              {(['study', 'paused', 'break', 'idle'] as const).map((messageKey) => (
+                <button
+                  type="button"
+                  key={messageKey}
+                  className={messageEditorKey === messageKey ? 'active' : ''}
+                  onClick={() => setMessageEditorKey(messageKey)}
+                >
+                  <strong>{messageLabels[language][messageKey]}</strong>
+                  <small>{currentMessageKey === messageKey ? '現在の状態' : messageDescriptions[language][messageKey]}</small>
+                </button>
+              ))}
+            </div>
+            <div className="message-editor-box">
+              <div className="message-editor-heading">
+                <strong>{messageLabels[language][messageEditorKey]}</strong>
+                <span>{messageDescriptions[language][messageEditorKey]}</span>
+              </div>
+              <textarea
+                rows={4}
+                maxLength={220}
+                aria-label={`${messageLabels[language][messageEditorKey]}の表示文`}
+                value={state.settings.messages[messageEditorKey]}
+                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: event.target.value } })}
+              />
+              <div className="message-editor-footer">
+                <select
+                  aria-label="定型文から選ぶ"
+                  value=""
+                  onChange={(event) => {
+                    if (!event.target.value) return;
+                    patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: event.target.value } });
+                  }}
+                >
+                  <option value="">定型文から選ぶ…</option>
+                  {messageTemplates[language][messageEditorKey].map((template) => <option key={template} value={template}>{template}</option>)}
+                </select>
+                <small>{state.settings.messages[messageEditorKey].length}/220文字</small>
+              </div>
+            </div>
           </div>
         )}
 
@@ -466,6 +491,26 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
 const messageLabels = {
   ja: { study: '学習中', paused: '一時停止中', break: '休憩中', idle: '待機中' },
   en: { study: 'Studying', paused: 'Paused', break: 'On break', idle: 'Ready' },
+} as const;
+
+const messageDescriptions = {
+  ja: { study: '学習時間を計測中', paused: '学習タイマーを一時停止中', break: '休憩時間中', idle: 'セッション開始前' },
+  en: { study: 'While study time runs', paused: 'While the timer is paused', break: 'During a break', idle: 'Before the session starts' },
+} as const;
+
+const messageTemplates = {
+  ja: {
+    study: ['集中しています。コメントは休憩中に読みます。', 'ただいま学習中です。応援コメントありがとうございます。'],
+    paused: ['少し会話しています。学習タイマーは一時停止中です。', '一時停止中です。まもなく学習へ戻ります。'],
+    break: ['休憩中です。コメントを読んでいます。', '休憩中です。次の学習開始までお待ちください。'],
+    idle: ['まもなく学習を始めます。', '配信準備中です。少々お待ちください。'],
+  },
+  en: {
+    study: ['Focusing now. I will read chat during the break.', 'Study in progress. Thanks for cheering me on!'],
+    paused: ['Chatting briefly. The study timer is paused.', 'Paused for a moment. Study will resume soon.'],
+    break: ['On a break and reading chat.', 'Taking a break. The next study session starts soon.'],
+    idle: ['Study will begin shortly.', 'Getting ready to stream. Please wait a moment.'],
+  },
 } as const;
 
 const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks'];

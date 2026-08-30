@@ -17,18 +17,12 @@ interface BoardProps {
   state: AppState;
   session: SessionState;
   now: number;
-  editor?: boolean;
-  selected?: WidgetId;
-  onSelect?: (id: WidgetId) => void;
 }
 
 export function Board({
   state,
   session,
   now,
-  editor = false,
-  selected,
-  onSelect,
 }: BoardProps) {
   const { settings } = state;
   const language = settings.language;
@@ -89,13 +83,8 @@ export function Board({
   const renderWidget = (widget: (typeof visibleWidgets)[number]) => (
     <article
       key={widget.id}
-      className={`board-widget widget-${widget.id}${selected === widget.id ? ' is-selected' : ''}`}
+      className={`board-widget widget-${widget.id}`}
       data-widget={widget.id}
-      tabIndex={editor ? 0 : undefined}
-      onClick={() => editor && onSelect?.(widget.id)}
-      onKeyDown={(event) => {
-        if (editor && (event.key === 'Enter' || event.key === ' ')) onSelect?.(widget.id);
-      }}
     >
       <span className="widget-content">{content[widget.id]}</span>
     </article>
@@ -107,7 +96,7 @@ export function Board({
 
   return (
     <div
-      className={`board board-${settings.layout}${editor ? ' board-editor' : ''}`}
+      className={`board board-${settings.layout}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >

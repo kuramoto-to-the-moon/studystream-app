@@ -345,7 +345,8 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
   align-items: flex-start;
   gap: 14px;
 }
-.editor-page-header > div { display: flex; flex-direction: column; gap: 5px; }
+.editor-title-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+.editor-title-row > div { display: flex; flex-direction: column; gap: 5px; }
 .editor-page-header h1 { font-size: 20px; line-height: 1.25; font-weight: 800; }
 .editor-page-header p { margin: 0; color: var(--muted); font-size: 11px; }
 .editor-back {
@@ -358,6 +359,21 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
   cursor: pointer;
 }
 .editor-back:hover { color: #111; text-decoration: underline; text-underline-offset: 3px; }
+.preview-toggle-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #fff;
+  color: #111;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.preview-toggle-button:hover { border-color: #111; background: #f2f2f0; }
+.editor-page.preview-hidden { grid-template-columns: minmax(0, 680px); justify-content: center; }
+.editor-page.preview-hidden .inspector { position: static; grid-column: 1; width: 100%; max-height: none; }
 .editor-preview-panel { min-width: 0; }
 .preview-card-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
 .preview-card-heading h2 { font-size: 14px; font-weight: 800; letter-spacing: -.015em; }
@@ -376,10 +392,6 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .editor-canvas.preview-horizontal .board { width: min(100%, 600px); height: auto; aspect-ratio: 600 / 180; }
 .editor-canvas.preview-vertical { min-height: 580px; }
 .editor-canvas.preview-vertical .board { width: min(100%, 320px); height: 520px; }
-.board-editor { overflow: visible; }
-.board-editor .board-widget { cursor: pointer; }
-.board-editor .board-widget:focus-visible { outline: none; }
-.board-editor .board-widget.is-selected > .widget-content { border-radius: 2px; outline: 2px dashed currentColor; outline-offset: 6px; }
 .inspector {
   position: sticky;
   top: 92px;
@@ -395,16 +407,17 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
   border-bottom: 1px solid var(--line);
   padding: 0 12px;
   background: #fff;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 .inspector-tabs button {
   position: relative;
   border: 0;
-  padding: 0 11px;
+  padding: 0 4px;
   background: transparent;
   color: #777;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -484,6 +497,54 @@ h1, h2 { margin: 0; color: #111; letter-spacing: -.03em; }
 .color-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .empty-settings, .settings-note { margin: 0; color: #777; font-size: 11px; line-height: 1.6; }
 .settings-note { margin-top: -14px; }
+.message-state-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.message-state-grid button {
+  min-height: 48px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  text-align: left;
+  cursor: pointer;
+}
+.message-state-grid button:hover { border-color: #111; }
+.message-state-grid button.active { border-color: #111; background: #111; color: #fff; }
+.message-state-grid strong { font-size: 11px; }
+.message-state-grid small { max-width: 100%; overflow: hidden; color: #777; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.message-state-grid button.active small { color: #ccc; }
+.message-editor-box { margin-top: 12px; border: 1px solid #bbb; border-radius: 7px; padding: 12px; }
+.message-editor-heading { margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.message-editor-heading strong { font-size: 11px; }
+.message-editor-heading span { color: #777; font-size: 8px; text-align: right; }
+.message-editor-box textarea {
+  width: 100%;
+  min-height: 86px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  padding: 9px 10px;
+  resize: vertical;
+  color: #111;
+  background: #fff;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.message-editor-footer { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.message-editor-footer select {
+  min-width: 0;
+  height: 30px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  padding: 0 7px;
+  background: #fff;
+  color: #111;
+  font-size: 9px;
+}
+.message-editor-footer small { flex: 0 0 auto; color: #777; font-size: 9px; }
 .streak-editor { margin-top: 4px; }
 .streak-editor-heading {
   margin: 18px 0 10px;
