@@ -38,26 +38,23 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     patchState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
   }
 
+  function navigate(nextPage: Page) {
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <button type="button" className="wordmark" onClick={() => setPage('control')}>StudyStream</button>
-        <div className="header-tools">
+        <button type="button" className="wordmark" onClick={() => navigate('control')}>StudyStream</button>
+        <div className="save-status" title={connected ? '設定と学習記録はこの端末に保存されています' : 'ローカル保存に再接続しています'}>
           <span className={`connection-dot ${connected ? 'online' : ''}`} aria-hidden="true" />
-          <span>{connected ? 'ローカル保存' : '再接続中'}</span>
-          <select
-            aria-label="視聴者表示言語"
-            value={state.settings.language}
-            onChange={(event) => patchSettings({ language: event.target.value as 'ja' | 'en' })}
-          >
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
-          </select>
+          <span>{connected ? '端末に保存済み' : '再接続中'}</span>
         </div>
       </header>
 
       {page === 'control' ? (
-        <ControlPage state={state} session={displaySession} now={now} actions={actions} onEdit={() => setPage('editor')} />
+        <ControlPage state={state} session={displaySession} now={now} actions={actions} onEdit={() => navigate('editor')} />
       ) : (
         <EditorPage
           state={state}
@@ -65,7 +62,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
           now={now}
           patchSettings={patchSettings}
           patchState={patchState}
-          onBack={() => setPage('control')}
+          onBack={() => navigate('control')}
         />
       )}
     </div>
@@ -94,12 +91,14 @@ function ControlPage({
 
   return (
     <main className="page control-page">
+      <header className="page-heading">
+        <h1>配信操作</h1>
+        <p>学習と休憩の状態を切り替えます</p>
+      </header>
       <section className="panel session-panel">
-        <div className="control-section-title">
-          <div>
-            <h1>配信操作</h1>
-            <p>いまの状態を選択します</p>
-          </div>
+        <div className="panel-heading">
+          <div><h2>現在のセッション</h2><p>操作はOBSの表示にすぐ反映されます</p></div>
+          <span>{session.tracking ? '計測中' : session.phase === 'study' ? '一時停止中' : session.phase === 'break' ? '休憩中' : '開始前'}</span>
         </div>
         <div className="phase-summary">
           <div>
@@ -131,19 +130,26 @@ function ControlPage({
           <div><strong>{formatDuration(session.todaySeconds, state.settings.language)}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, state.settings.language)}</strong><span>{copy.total}</span></div>
         </div>
-        <div className="control-utilities">
+        {session.phase !== 'idle' && (
+          <div className="session-footer">
+            <button type="button" className="session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
+              セッション終了
+            </button>
+          </div>
+        )}
+      </section>
+      <section className="panel board-tools-panel">
+        <div className="panel-heading">
+          <div><h2>配信ボード</h2><p>視聴者に見せる情報とデザインを管理します</p></div>
+        </div>
+        <div className="board-tools-actions">
           <button type="button" className="open-editor-button" onClick={onEdit}>
-            <span><strong>ボード編集</strong><small>色・文字・表示項目を変更</small></span>
+            <span><strong>ボード編集</strong><small>表示内容・メッセージ・色を変更</small></span>
             <span aria-hidden="true">→</span>
           </button>
           <button type="button" className="copy-obs-button" onClick={() => void navigator.clipboard?.writeText('http://127.0.0.1:47831/overlay')}>
             OBS URLをコピー
           </button>
-          {session.phase !== 'idle' && (
-            <button type="button" className="session-end-button" onClick={actions.finish} aria-label="現在のセッションを終了">
-              セッション終了
-            </button>
-          )}
         </div>
       </section>
     </main>
@@ -174,7 +180,7 @@ function EditorPage({
 
   return (
     <main className={`page editor-page${previewOpen ? '' : ' preview-hidden'}`}>
-      <header className="editor-page-header">
+      <header className="editor-page-header page-heading">
         <button type="button" className="editor-back" onClick={onBack}>← 配信操作へ戻る</button>
         <div className="editor-title-row">
           <div>
@@ -209,8 +215,24 @@ function EditorPage({
 
         {section === 'widget' && (
           <div className="inspector-content">
-            <div className="visibility-panel" aria-label="表示・非表示">
-              <div className="visibility-heading"><strong>上段の表示</strong><span>状態・時間・文言</span></div>
+            <div className="inspector-page-heading">
+              <h2>表示内容</h2>
+              <p>視聴者に見せる情報を選びます</p>
+            </div>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>配信表示の言語</strong><span>ラベルと時間表記が変わります</span></div>
+              <select
+                className="language-select"
+                aria-label="配信表示の言語"
+                value={state.settings.language}
+                onChange={(event) => patchSettings({ language: event.target.value as 'ja' | 'en' })}
+              >
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
+            </section>
+            <section className="settings-section" aria-label="基本表示">
+              <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
                 {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <label key={widget.id}>
@@ -231,11 +253,9 @@ function EditorPage({
                   </label>
                 ))}
               </div>
-            </div>
-            <div className="metric-slot-settings">
-              <p className="eyebrow">メッセージ下の表示</p>
-              <h2>集計ウィジェット</h2>
-              <p className="settings-note">最大3枠。表示する数に合わせて横幅が自動調整されます。</p>
+            </section>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>集計表示</strong><span>メッセージの下に最大3件</span></div>
               <div className="metric-slot-list">
                 {metricSlotIds.map((slotId, index) => {
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
@@ -270,19 +290,20 @@ function EditorPage({
                   );
                 })}
               </div>
-              <details className="streak-manager">
-                <summary>継続項目を管理</summary>
-                <StreakEditor state={state} patchState={patchState} />
-              </details>
-            </div>
+            </section>
+            <details className="settings-section streak-manager">
+              <summary><span><strong>継続項目</strong><small>継続日数や回数を管理</small></span><span aria-hidden="true">開く</span></summary>
+              <StreakEditor state={state} patchState={patchState} />
+            </details>
           </div>
         )}
 
         {section === 'message' && (
           <div className="inspector-content">
-            <p className="eyebrow">メッセージ設定</p>
-            <h2>状態別メッセージ</h2>
-            <p className="settings-note">編集する状態を選んでください。現在の状態に限らず変更できます。</p>
+            <div className="inspector-page-heading">
+              <h2>状態メッセージ</h2>
+              <p>状態ごとに視聴者へ表示する文を設定します</p>
+            </div>
             <div className="message-state-grid">
               {(['study', 'paused', 'break', 'idle'] as const).map((messageKey) => (
                 <button
@@ -328,24 +349,30 @@ function EditorPage({
 
         {section === 'appearance' && (
           <div className="inspector-content">
-            <p className="eyebrow">表示設定</p>
-            <h2>ボードの外観</h2>
-            <Field label="形">
+            <div className="inspector-page-heading">
+              <h2>色・レイアウト</h2>
+              <p>配信画面に合わせて形と色を整えます</p>
+            </div>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>レイアウト</strong><span>OBSで使う縦横比に合わせます</span></div>
               <div className="segmented">
                 <button className={state.settings.layout === 'horizontal' ? 'active' : ''} onClick={() => patchSettings({ layout: 'horizontal' })}>横長</button>
                 <button className={state.settings.layout === 'vertical' ? 'active' : ''} onClick={() => patchSettings({ layout: 'vertical' })}>縦長</button>
               </div>
-            </Field>
-            <div className="color-fields">
-              <Field label="背景色"><input type="color" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} /></Field>
-              <Field label="文字色"><input type="color" value={state.settings.textColor} onChange={(event) => patchSettings({ textColor: event.target.value })} /></Field>
-            </div>
-            <Field label={`背景の不透明度 ${Math.round(state.settings.backgroundOpacity * 100)}%`}>
-              <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
-            </Field>
-            <Field label={`文字の不透明度 ${Math.round((state.settings.textOpacity ?? 1) * 100)}%`}>
-              <input type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
-            </Field>
+            </section>
+            <section className="settings-section">
+              <div className="settings-section-heading"><strong>色と透過</strong><span>背景と文字を個別に調整できます</span></div>
+              <div className="color-fields">
+                <Field label="背景色"><input type="color" value={state.settings.background} onChange={(event) => patchSettings({ background: event.target.value })} /></Field>
+                <Field label="文字色"><input type="color" value={state.settings.textColor} onChange={(event) => patchSettings({ textColor: event.target.value })} /></Field>
+              </div>
+              <Field label={`背景の不透明度 ${Math.round(state.settings.backgroundOpacity * 100)}%`}>
+                <input type="range" min="0" max="100" value={state.settings.backgroundOpacity * 100} onChange={(event) => patchSettings({ backgroundOpacity: Number(event.target.value) / 100 })} />
+              </Field>
+              <Field label={`文字の不透明度 ${Math.round((state.settings.textOpacity ?? 1) * 100)}%`}>
+                <input type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
+              </Field>
+            </section>
           </div>
         )}
       </aside>
