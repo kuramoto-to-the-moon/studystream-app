@@ -71,7 +71,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     note: '常時表示する注記',
     session: '今回の学習時間',
     today: '今日',
-    streaks: '継続項目',
+    streaks: 'その他の項目',
   },
   en: {
     state: 'Status',
@@ -124,7 +124,7 @@ export const metricLabels: Record<Language, Record<MetricKind, string>> = {
     month: '今月',
     year: '今年',
     total: '累計',
-    streaks: '継続項目',
+    streaks: 'その他の項目',
   },
   en: {
     session: 'Session time',

@@ -239,6 +239,26 @@ function ObsLogo() {
   );
 }
 
+function VisibilityButton({ label, visible, onToggle }: { label: string; visible: boolean; onToggle: () => void }) {
+  const action = visible ? '非表示にする' : '表示する';
+  return (
+    <button
+      type="button"
+      className={`visibility-button${visible ? ' visible' : ''}`}
+      aria-label={`${label}を${action}`}
+      aria-pressed={visible}
+      title={`${label}を${action}`}
+      onClick={onToggle}
+    >
+      <svg aria-hidden="true" viewBox="0 0 20 20">
+        <path d="M2.5 10s2.7-4.5 7.5-4.5 7.5 4.5 7.5 4.5-2.7 4.5-7.5 4.5S2.5 10 2.5 10Z" />
+        <circle cx="10" cy="10" r="2.1" />
+        {!visible && <path className="visibility-slash" d="m4 4 12 12" />}
+      </svg>
+    </button>
+  );
+}
+
 function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>) {
   if (state.settings.layout === 'vertical') return { width: 320, height: 520 };
 
@@ -434,22 +454,22 @@ function EditorPage({
               <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
                 {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id) && (widget.id !== 'offstream' || state.settings.offstreamEnabled)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
-                  <label key={widget.id}>
+                  <div key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
-                    <input
-                      type="checkbox"
-                      checked={widget.visible}
-                      onChange={(event) => {
+                    <VisibilityButton
+                      label={widgetLabels[interfaceLanguage][widget.id]}
+                      visible={widget.visible}
+                      onToggle={() => {
                         patchState((current) => ({
                           ...current,
                           settings: {
                             ...current.settings,
-                            widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: event.target.checked } : item),
+                            widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: !widget.visible } : item),
                           },
                         }));
                       }}
                     />
-                  </label>
+                  </div>
                 ))}
               </div>
             </section>
@@ -460,12 +480,11 @@ function EditorPage({
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
                     <div className="metric-slot-row" key={slotId}>
-                      <input
-                        type="checkbox"
-                        aria-label={`下段${index + 1}を表示`}
-                        checked={widget?.visible ?? true}
-                        onChange={(event) => {
-                          const visible = event.target.checked;
+                      <VisibilityButton
+                        label={`枠 ${index + 1}`}
+                        visible={widget?.visible ?? true}
+                        onToggle={() => {
+                          const visible = !(widget?.visible ?? true);
                           patchState((current) => ({
                             ...current,
                             settings: {
@@ -489,7 +508,7 @@ function EditorPage({
               </div>
             </section>
             <details className="settings-section streak-manager">
-              <summary><span><strong>継続項目</strong><small>継続日数や回数を管理</small></span><span aria-hidden="true">開く</span></summary>
+              <summary><span><strong>その他の項目</strong><small>日数や回数などを管理</small></span><span aria-hidden="true">開く</span></summary>
               <StreakEditor state={state} patchState={patchState} />
             </details>
             <section className="settings-section">
@@ -661,12 +680,11 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
                 <strong>{item.name || '名称未設定'}</strong>
                 <small>{item.kind === 'count' ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}` : '開始日からの日数'}</small>
               </button>
-              <input
-                type="checkbox"
-                aria-label={`${item.name || '名称未設定'}を表示`}
-                checked={item.visible}
-                onChange={(event) => {
-                  const visible = event.target.checked;
+              <VisibilityButton
+                label={item.name || '名称未設定'}
+                visible={item.visible}
+                onToggle={() => {
+                  const visible = !item.visible;
                   patchState((current) => ({
                     ...current,
                     settings: { ...current.settings, streaks: current.settings.streaks.map((currentItem) => currentItem.id === item.id ? { ...currentItem, visible } : currentItem) },
