@@ -361,29 +361,30 @@ function ControlPage({
         </div>
       </header>
       <section className="panel session-panel">
-        <div className="phase-summary">
-          <div>
-            <div className="phase-label-row">
-              <p className="eyebrow">現在の状態</p>
+        <div className="session-control-column">
+          <div className="phase-summary">
+            <div className="phase-status-line">
+              <i aria-hidden="true" />
+              <h1>{phaseLabel(session, 'ja')}</h1>
             </div>
-            <h1>{phaseLabel(session, 'ja')}</h1>
+            <div className="control-clock">
+              <strong>{formatClock(remainingSeconds(session, now))}</strong>
+              <span>{copy.remaining}</span>
+            </div>
           </div>
-          <div className="control-clock">
-            <strong>{formatClock(remainingSeconds(session, now))}</strong>
-            <span>{copy.remaining}</span>
+
+          <div className="control-actions" aria-label="配信状態">
+            <button type="button" className={`button${session.phase === 'study' && !isIntervalCompleted ? ' active' : ''}`} onClick={usePrimaryAction}>
+              {primaryLabel}
+            </button>
+            <button type="button" className={`button${breakIsRunning ? ' active' : ''}`} disabled={session.phase === 'idle' || breakIsRunning} onClick={actions.startBreak}>
+              {breakIsRunning ? '休憩中' : '休憩を開始'}
+            </button>
           </div>
         </div>
 
-        <div className="control-actions" aria-label="配信状態">
-          <button type="button" className={`button${session.phase === 'study' && !isIntervalCompleted ? ' active' : ''}`} onClick={usePrimaryAction}>
-            {primaryLabel}
-          </button>
-          <button type="button" className={`button${breakIsRunning ? ' active' : ''}`} disabled={session.phase === 'idle' || breakIsRunning} onClick={actions.startBreak}>
-            {breakIsRunning ? '休憩中' : '休憩を開始'}
-          </button>
-        </div>
-
-        <div className="session-stats">
+        <div className="session-stats" aria-label="学習時間">
+          <p className="session-stats-heading">学習時間</p>
           <div><strong>{formatDuration(session.sessionSeconds, 'ja')}</strong><span>{copy.session}</span></div>
           <div><strong>{formatDuration(session.todaySeconds, 'ja')}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, 'ja')}</strong><span>{copy.total}</span></div>
