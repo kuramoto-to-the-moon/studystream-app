@@ -18,6 +18,8 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         note: next.settings.note ?? '',
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
+        secondaryTextColor: next.settings.secondaryTextColor ?? next.settings.textColor,
+        secondaryTextOpacity: next.settings.secondaryTextOpacity ?? 0.62,
         widgets: [
           ...next.settings.widgets,
           ...widgetOrder

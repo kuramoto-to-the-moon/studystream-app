@@ -39,6 +39,8 @@ const initialState = {
     backgroundOpacity: 0.9,
     textColor: '#ffffff',
     textOpacity: 1,
+    secondaryTextColor: '#ffffff',
+    secondaryTextOpacity: 0.62,
     showMetricSeconds: false,
     note: '',
     offstreamEnabled: false,

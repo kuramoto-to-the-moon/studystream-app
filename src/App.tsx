@@ -632,7 +632,7 @@ function EditorPage({
               </div>
             </section>
             <section className="settings-section appearance-color-section">
-              <div className="settings-section-heading"><strong>色と透過</strong><span>背景と文字を個別に調整できます</span></div>
+              <div className="settings-section-heading"><strong>色と透過</strong><span>背景、メイン文字、補助文字を個別に調整できます</span></div>
               <div className="color-control-list">
                 <div className="color-control-row">
                   <span className="color-control-name">背景</span>
@@ -643,12 +643,20 @@ function EditorPage({
                   <output>{Math.round(state.settings.backgroundOpacity * 100)}%</output>
                 </div>
                 <div className="color-control-row">
-                  <span className="color-control-name">文字</span>
+                  <span className="color-control-name">メイン文字</span>
                   <label className="color-swatch" style={{ backgroundColor: state.settings.textColor }} title="文字色を選ぶ">
                     <input type="color" aria-label="文字色" value={state.settings.textColor} onChange={(event) => patchSettings({ textColor: event.target.value })} />
                   </label>
                   <input className="opacity-range" aria-label="文字の不透明度" type="range" min="0" max="100" value={(state.settings.textOpacity ?? 1) * 100} onChange={(event) => patchSettings({ textOpacity: Number(event.target.value) / 100 })} />
                   <output>{Math.round((state.settings.textOpacity ?? 1) * 100)}%</output>
+                </div>
+                <div className="color-control-row">
+                  <span className="color-control-name">補助文字</span>
+                  <label className="color-swatch" style={{ backgroundColor: state.settings.secondaryTextColor ?? state.settings.textColor }} title="補助文字色を選ぶ">
+                    <input type="color" aria-label="補助文字色" value={state.settings.secondaryTextColor ?? state.settings.textColor} onChange={(event) => patchSettings({ secondaryTextColor: event.target.value })} />
+                  </label>
+                  <input className="opacity-range" aria-label="補助文字の不透明度" type="range" min="0" max="100" value={(state.settings.secondaryTextOpacity ?? 0.62) * 100} onChange={(event) => patchSettings({ secondaryTextOpacity: Number(event.target.value) / 100 })} />
+                  <output>{Math.round((state.settings.secondaryTextOpacity ?? 0.62) * 100)}%</output>
                 </div>
               </div>
             </section>

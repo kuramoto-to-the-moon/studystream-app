@@ -48,6 +48,8 @@ export interface Settings {
   backgroundOpacity: number;
   textColor: string;
   textOpacity?: number;
+  secondaryTextColor?: string;
+  secondaryTextOpacity?: number;
   showMetricSeconds?: boolean;
   note?: string;
   offstreamEnabled?: boolean;

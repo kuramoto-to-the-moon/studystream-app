@@ -223,6 +223,8 @@ fn default_state() -> Value {
             "backgroundOpacity": 0.9,
             "textColor": "#ffffff",
             "textOpacity": 1.0,
+            "secondaryTextColor": "#ffffff",
+            "secondaryTextOpacity": 0.62,
             "showMetricSeconds": false,
             "note": "",
             "offstreamEnabled": false,

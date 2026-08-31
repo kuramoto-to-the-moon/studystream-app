@@ -42,6 +42,10 @@ export function Board({
   const boardStyle = {
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
+    '--board-subtext': hexToRgba(
+      settings.secondaryTextColor ?? settings.textColor,
+      settings.secondaryTextOpacity ?? 0.62,
+    ),
   } as CSSProperties;
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
