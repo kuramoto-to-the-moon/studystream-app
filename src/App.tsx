@@ -170,6 +170,17 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
                   />
                   <span><strong>学習と休憩を自動で切り替える</strong><small>終了すると次のタイマーを自動で開始します</small></span>
                 </label>
+                <label className="auto-cycle-option">
+                  <input
+                    type="checkbox"
+                    checked={state.settings.completionSoundEnabled ?? true}
+                    onChange={(event) => {
+                      if (event.target.checked) actions.prepareCompletionSound();
+                      patchSettings({ completionSoundEnabled: event.target.checked });
+                    }}
+                  />
+                  <span><strong>終了音を鳴らす</strong><small>学習と休憩の終了時に短いチャイムを鳴らします</small></span>
+                </label>
               </div>
               <p>時間の変更は次に開始する学習・休憩から反映します</p>
             </div>

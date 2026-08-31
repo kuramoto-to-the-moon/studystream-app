@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
 import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, widgetOrder } from './model';
 
@@ -9,10 +10,12 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const [now, setNow] = useState(Date.now());
   const [connected, setConnected] = useState(false);
   const stateRef = useRef<AppState | null>(null);
+  const armedSoundDeadlineRef = useRef<number | null>(null);
 
   const receive = useCallback((next: AppState) => {
     const shouldUpgradeSecondaryText = (next.settings.secondaryTextDefaultVersion ?? 1) < 2
       && (next.settings.secondaryTextOpacity == null || next.settings.secondaryTextOpacity === 0.62);
+    const shouldUpgradeDefaultStreak = (next.settings.defaultStreakVersion ?? 1) < 2;
     const withDefaults: AppState = {
       ...next,
       session: {
@@ -22,6 +25,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       settings: {
         ...next.settings,
         autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
+        completionSoundEnabled: next.settings.completionSoundEnabled ?? true,
         note: next.settings.note ?? '',
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
@@ -30,12 +34,23 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           ? DEFAULT_SECONDARY_TEXT_OPACITY
           : (next.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY),
         secondaryTextDefaultVersion: 2,
+        defaultStreakVersion: 2,
         widgets: [
           ...next.settings.widgets,
           ...widgetOrder
             .filter((id) => !next.settings.widgets.some((widget) => widget.id === id))
             .map((id) => ({ id, visible: true })),
         ],
+        streaks: shouldUpgradeDefaultStreak
+          ? next.settings.streaks.map((item) => (
+              item.id === 'smoke-free'
+              && item.name === '禁煙'
+              && (item.kind == null || item.kind === 'days')
+              && item.startedOn === '2026-07-13'
+                ? { id: 'workout', name: '筋トレ', kind: 'count' as const, count: 0, unit: '回', visible: item.visible }
+                : item
+            ))
+          : next.settings.streaks,
       },
     };
     const session = withDefaults.session;
@@ -109,11 +124,31 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
 
   useEffect(() => {
     if (readOnly) return;
+    const prepareAudioAfterInteraction = () => {
+      if (stateRef.current?.settings.completionSoundEnabled ?? true) prepareCompletionSound();
+    };
+    window.addEventListener('pointerdown', prepareAudioAfterInteraction);
+    return () => window.removeEventListener('pointerdown', prepareAudioAfterInteraction);
+  }, [readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
     if (!state) return;
+    const remaining = remainingSeconds(state.session, now);
+    if (state.session.phaseEndsAt !== null && remaining > 0) {
+      armedSoundDeadlineRef.current = state.session.phaseEndsAt;
+    }
     const due = state.session.phaseEndsAt !== null
-      && remainingSeconds(state.session, now) === 0
+      && remaining === 0
       && state.session.phase !== 'idle';
     if (!due) return;
+    const completedDeadline = state.session.phaseEndsAt;
+    if ((state.settings.completionSoundEnabled ?? true)
+      && armedSoundDeadlineRef.current === completedDeadline
+      && (state.session.phase === 'study' || state.session.phase === 'break')) {
+      void playCompletionSound(state.session.phase);
+    }
+    armedSoundDeadlineRef.current = null;
     update((current) => {
       const checkpointed = materializeSession(current.session, now);
       if (!(current.settings.autoCycleEnabled ?? true)) {
@@ -166,8 +201,14 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     [update],
   );
 
+  const prepareEnabledCompletionSound = () => {
+    if (stateRef.current?.settings.completionSoundEnabled ?? true) prepareCompletionSound();
+  };
+
   const actions = {
-    startStudy: () =>
+    prepareCompletionSound: () => prepareCompletionSound(),
+    startStudy: () => {
+      prepareEnabledCompletionSound();
       changeSession((session, current, stamp) => ({
         ...session,
         sessionSeconds: session.phase === 'idle' ? 0 : session.sessionSeconds,
@@ -178,8 +219,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         phaseEndsAt: stamp + current.settings.studyMinutes * 60_000,
         pausedRemainingSeconds: null,
         lastCheckpointAt: stamp,
-      })),
-    toggleTracking: () =>
+      }));
+    },
+    toggleTracking: () => {
+      prepareEnabledCompletionSound();
       changeSession((session, _current, stamp) => {
         if (session.phase !== 'study') return { ...session, tracking: false };
         if (session.tracking) {
@@ -204,8 +247,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           pausedRemainingSeconds: null,
           lastCheckpointAt: stamp,
         };
-      }),
-    startBreak: () =>
+      });
+    },
+    startBreak: () => {
+      prepareEnabledCompletionSound();
       changeSession((session, current, stamp) => ({
         ...session,
         phase: 'break',
@@ -215,7 +260,8 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         phaseEndsAt: stamp + current.settings.breakMinutes * 60_000,
         pausedRemainingSeconds: null,
         lastCheckpointAt: stamp,
-      })),
+      }));
+    },
     addStudyTime: (seconds: number) =>
       changeSession((session) => {
         const addedSeconds = Math.max(0, Math.floor(seconds));

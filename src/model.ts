@@ -55,6 +55,7 @@ export interface Settings {
   studyMinutes: number;
   breakMinutes: number;
   autoCycleEnabled?: boolean;
+  completionSoundEnabled?: boolean;
   language: Language;
   layout: Layout;
   background: string;
@@ -64,6 +65,7 @@ export interface Settings {
   secondaryTextColor?: string;
   secondaryTextOpacity?: number;
   secondaryTextDefaultVersion?: number;
+  defaultStreakVersion?: number;
   showMetricSeconds?: boolean;
   note?: string;
   offstreamEnabled?: boolean;

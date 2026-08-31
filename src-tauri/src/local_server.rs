@@ -219,6 +219,7 @@ fn default_state() -> Value {
             "studyMinutes": 30,
             "breakMinutes": 10,
             "autoCycleEnabled": true,
+            "completionSoundEnabled": true,
             "language": "ja",
             "layout": "horizontal",
             "background": "#000000",
@@ -228,6 +229,7 @@ fn default_state() -> Value {
             "secondaryTextColor": "#ffffff",
             "secondaryTextOpacity": 0.78,
             "secondaryTextDefaultVersion": 2,
+            "defaultStreakVersion": 2,
             "showMetricSeconds": false,
             "note": "",
             "offstreamEnabled": false,
@@ -249,7 +251,7 @@ fn default_state() -> Value {
                 { "id": "streaks", "visible": true }
             ],
             "streaks": [
-                { "id": "smoke-free", "name": "禁煙", "kind": "days", "startedOn": "2026-07-13", "dayMode": "all", "visible": true }
+                { "id": "workout", "name": "筋トレ", "kind": "count", "count": 0, "unit": "回", "visible": true }
             ]
         }
     })
