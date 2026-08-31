@@ -203,6 +203,7 @@ fn default_state() -> Value {
         "session": {
             "phase": "idle",
             "tracking": false,
+            "intervalCompleted": false,
             "phaseStartedAt": null,
             "phaseEndsAt": null,
             "pausedRemainingSeconds": null,
@@ -217,6 +218,7 @@ fn default_state() -> Value {
         "settings": {
             "studyMinutes": 30,
             "breakMinutes": 10,
+            "autoCycleEnabled": true,
             "language": "ja",
             "layout": "horizontal",
             "background": "#000000",

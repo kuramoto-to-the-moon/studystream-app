@@ -19,6 +19,7 @@ const initialState = {
   session: {
     phase: 'idle',
     tracking: false,
+    intervalCompleted: false,
     phaseStartedAt: null,
     phaseEndsAt: null,
     pausedRemainingSeconds: null,
@@ -33,6 +34,7 @@ const initialState = {
   settings: {
     studyMinutes: 30,
     breakMinutes: 10,
+    autoCycleEnabled: true,
     language: 'ja',
     layout: 'horizontal',
     background: '#000000',

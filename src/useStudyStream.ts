@@ -13,8 +13,13 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const receive = useCallback((next: AppState) => {
     const withDefaults: AppState = {
       ...next,
+      session: {
+        ...next.session,
+        intervalCompleted: next.session.intervalCompleted ?? false,
+      },
       settings: {
         ...next.settings,
+        autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
         note: next.settings.note ?? '',
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
@@ -106,6 +111,19 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     if (!due) return;
     update((current) => {
       const checkpointed = materializeSession(current.session, now);
+      if (!(current.settings.autoCycleEnabled ?? true)) {
+        return {
+          ...current,
+          session: {
+            ...checkpointed,
+            tracking: false,
+            intervalCompleted: true,
+            phaseEndsAt: null,
+            pausedRemainingSeconds: null,
+            lastCheckpointAt: now,
+          },
+        };
+      }
       const nextPhase = checkpointed.phase === 'study' ? 'break' : 'study';
       const minutes = nextPhase === 'study' ? current.settings.studyMinutes : current.settings.breakMinutes;
       return {
@@ -114,6 +132,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           ...checkpointed,
           phase: nextPhase,
           tracking: nextPhase === 'study',
+          intervalCompleted: false,
           phaseStartedAt: now,
           phaseEndsAt: now + minutes * 60_000,
           pausedRemainingSeconds: null,
@@ -149,6 +168,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         sessionSeconds: session.phase === 'idle' ? 0 : session.sessionSeconds,
         phase: 'study',
         tracking: true,
+        intervalCompleted: false,
         phaseStartedAt: stamp,
         phaseEndsAt: stamp + current.settings.studyMinutes * 60_000,
         pausedRemainingSeconds: null,
@@ -161,6 +181,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           return {
             ...session,
             tracking: false,
+            intervalCompleted: false,
             phaseEndsAt: null,
             pausedRemainingSeconds: remainingSeconds(session, stamp),
             lastCheckpointAt: stamp,
@@ -173,6 +194,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         return {
           ...session,
           tracking: true,
+          intervalCompleted: false,
           phaseEndsAt: stamp + pausedRemaining * 1000,
           pausedRemainingSeconds: null,
           lastCheckpointAt: stamp,
@@ -183,6 +205,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         ...session,
         phase: 'break',
         tracking: false,
+        intervalCompleted: false,
         phaseStartedAt: stamp,
         phaseEndsAt: stamp + current.settings.breakMinutes * 60_000,
         pausedRemainingSeconds: null,
@@ -209,6 +232,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         ...session,
         phase: 'idle',
         tracking: false,
+        intervalCompleted: false,
         phaseStartedAt: null,
         phaseEndsAt: null,
         pausedRemainingSeconds: null,

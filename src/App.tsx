@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
-import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -162,8 +162,16 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
                     <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.breakMinutes} onChange={(event) => patchSettings({ breakMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
                   </label>
                 </div>
+                <label className="auto-cycle-option">
+                  <input
+                    type="checkbox"
+                    checked={state.settings.autoCycleEnabled ?? true}
+                    onChange={(event) => patchSettings({ autoCycleEnabled: event.target.checked })}
+                  />
+                  <span><strong>学習と休憩を自動で切り替える</strong><small>終了すると次のタイマーを自動で開始します</small></span>
+                </label>
               </div>
-              <p>次に開始する学習・休憩から反映します</p>
+              <p>時間の変更は次に開始する学習・休憩から反映します</p>
             </div>
             </details>
           </div>
@@ -293,8 +301,7 @@ function ControlPage({
   onEditBoard: () => void;
 }) {
   const copy = uiCopy.ja;
-  const key = phaseKey(session);
-  const isPaused = session.phase === 'study' && !session.tracking;
+  const isIntervalCompleted = session.intervalCompleted ?? false;
   const [offstreamHours, setOffstreamHours] = useState('');
   const [offstreamMinutes, setOffstreamMinutes] = useState('');
   const [offstreamAdded, setOffstreamAdded] = useState(false);
@@ -302,9 +309,17 @@ function ControlPage({
     Math.max(0, Number(offstreamHours) || 0) * 60
     + Math.max(0, Number(offstreamMinutes) || 0)
   ) * 60;
-  const enterStudy = () => {
-    if (session.phase === 'idle' || session.phase === 'break') actions.startStudy();
+  const usePrimaryAction = () => {
+    if (session.phase === 'study' && !isIntervalCompleted) {
+      actions.toggleTracking();
+      return;
+    }
+    actions.startStudy();
   };
+  const primaryLabel = session.phase === 'study' && !isIntervalCompleted
+    ? (session.tracking ? '一時停止' : '再開')
+    : '学習を開始';
+  const breakIsRunning = session.phase === 'break' && !isIntervalCompleted;
   const addOffstreamStudy = (event: React.FormEvent) => {
     event.preventDefault();
     if (!offstreamSeconds) return;
@@ -340,7 +355,7 @@ function ControlPage({
             <div className="phase-label-row">
               <p className="eyebrow">現在の状態</p>
             </div>
-            <h1>{copy[key]}</h1>
+            <h1>{phaseLabel(session, 'ja')}</h1>
           </div>
           <div className="control-clock">
             <strong>{formatClock(remainingSeconds(session, now))}</strong>
@@ -349,14 +364,11 @@ function ControlPage({
         </div>
 
         <div className="control-actions" aria-label="配信状態">
-          <button type="button" className={`button${session.phase === 'study' && session.tracking ? ' active' : ''}`} disabled={isPaused} onClick={enterStudy}>
-            学習
+          <button type="button" className={`button${session.phase === 'study' && !isIntervalCompleted ? ' active' : ''}`} onClick={usePrimaryAction}>
+            {primaryLabel}
           </button>
-          <button type="button" className={`button${isPaused ? ' active' : ''}`} disabled={session.phase !== 'study'} onClick={actions.toggleTracking}>
-            {isPaused ? '再開' : '一時停止'}
-          </button>
-          <button type="button" className={`button${session.phase === 'break' ? ' active' : ''}`} disabled={session.phase === 'idle'} onClick={actions.startBreak}>
-            休憩
+          <button type="button" className={`button${breakIsRunning ? ' active' : ''}`} disabled={session.phase === 'idle' || breakIsRunning} onClick={actions.startBreak}>
+            {breakIsRunning ? '休憩中' : '休憩を開始'}
           </button>
         </div>
 

@@ -7,6 +7,7 @@ import {
   metricLabels,
   metricSeconds,
   phaseKey,
+  phaseLabel,
   remainingSeconds,
   streakDays,
   uiCopy,
@@ -87,7 +88,7 @@ export function Board({
   );
 
   const content: Record<WidgetId, React.ReactNode> = {
-    state: <strong className="board-state">{copy[key]}</strong>,
+    state: <strong className="board-state">{phaseLabel(session, language)}</strong>,
     timer: (
       <span className="board-timer-wrap">
         <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>{formatClock(remaining)}</strong>

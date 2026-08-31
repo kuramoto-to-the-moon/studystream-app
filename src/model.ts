@@ -10,6 +10,7 @@ export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream'
 export interface SessionState {
   phase: Phase;
   tracking: boolean;
+  intervalCompleted?: boolean;
   phaseStartedAt: number | null;
   phaseEndsAt: number | null;
   pausedRemainingSeconds?: number | null;
@@ -42,6 +43,7 @@ export interface Streak {
 export interface Settings {
   studyMinutes: number;
   breakMinutes: number;
+  autoCycleEnabled?: boolean;
   language: Language;
   layout: Layout;
   background: string;
@@ -149,6 +151,14 @@ export const defaultMetricKinds: Record<MetricWidgetId, MetricKind> = {
 export function phaseKey(session: SessionState) {
   if (session.phase === 'study' && !session.tracking) return 'paused' as const;
   return session.phase;
+}
+
+export function phaseLabel(session: SessionState, language: Language) {
+  if (session.intervalCompleted) {
+    if (language === 'en') return session.phase === 'study' ? 'Study finished' : 'Break finished';
+    return session.phase === 'study' ? '学習終了' : '休憩終了';
+  }
+  return uiCopy[language][phaseKey(session)];
 }
 
 export function materializeSession(session: SessionState, now = Date.now()): SessionState {
