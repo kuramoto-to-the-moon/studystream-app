@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppState, SessionState } from './model';
-import { materializeSession, remainingSeconds, widgetOrder } from './model';
+import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -11,6 +11,8 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const stateRef = useRef<AppState | null>(null);
 
   const receive = useCallback((next: AppState) => {
+    const shouldUpgradeSecondaryText = (next.settings.secondaryTextDefaultVersion ?? 1) < 2
+      && (next.settings.secondaryTextOpacity == null || next.settings.secondaryTextOpacity === 0.62);
     const withDefaults: AppState = {
       ...next,
       session: {
@@ -24,7 +26,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
         secondaryTextColor: next.settings.secondaryTextColor ?? next.settings.textColor,
-        secondaryTextOpacity: next.settings.secondaryTextOpacity ?? 0.62,
+        secondaryTextOpacity: shouldUpgradeSecondaryText
+          ? DEFAULT_SECONDARY_TEXT_OPACITY
+          : (next.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY),
+        secondaryTextDefaultVersion: 2,
         widgets: [
           ...next.settings.widgets,
           ...widgetOrder

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
-import { defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -415,6 +415,13 @@ function EditorPage({
   const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
   const currentMessageKey = phaseKey(session);
   const showPreview = widePreview || previewOpen;
+  const secondaryContrast = minimumBoardContrast(
+    state.settings.background,
+    state.settings.backgroundOpacity,
+    state.settings.secondaryTextColor ?? state.settings.textColor,
+    state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
+  );
+  const secondaryContrastLevel = secondaryContrast >= 7 ? 'AAA' : secondaryContrast >= 4.5 ? 'AA' : 'AA未満';
 
   useEffect(() => {
     const media = window.matchMedia(EDITOR_PREVIEW_QUERY);
@@ -667,9 +674,19 @@ function EditorPage({
                   <label className="color-swatch" style={{ backgroundColor: state.settings.secondaryTextColor ?? state.settings.textColor }} title="補助文字色を選ぶ">
                     <input type="color" aria-label="補助文字色" value={state.settings.secondaryTextColor ?? state.settings.textColor} onChange={(event) => patchSettings({ secondaryTextColor: event.target.value })} />
                   </label>
-                  <input className="opacity-range" aria-label="補助文字の不透明度" type="range" min="0" max="100" value={(state.settings.secondaryTextOpacity ?? 0.62) * 100} onChange={(event) => patchSettings({ secondaryTextOpacity: Number(event.target.value) / 100 })} />
-                  <output>{Math.round((state.settings.secondaryTextOpacity ?? 0.62) * 100)}%</output>
+                  <input className="opacity-range" aria-label="補助文字の不透明度" type="range" min="0" max="100" value={(state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY) * 100} onChange={(event) => patchSettings({ secondaryTextOpacity: Number(event.target.value) / 100 })} />
+                  <output>{Math.round((state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY) * 100)}%</output>
                 </div>
+              </div>
+              <div className="color-accessibility-footer">
+                <p>
+                  <strong>補助文字のコントラスト <span className={secondaryContrastLevel === 'AA未満' ? 'contrast-warning' : ''}>{secondaryContrast.toFixed(1)}:1・{secondaryContrastLevel}</span></strong>
+                  <span>黒・白の映像上で低い方の目安です。小さい文字は4.5:1以上、できれば7:1以上を推奨します。</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => patchSettings({ ...DEFAULT_BOARD_APPEARANCE })}
+                >色と透過を初期設定に戻す</button>
               </div>
             </section>
           </div>
@@ -677,6 +694,44 @@ function EditorPage({
       </aside>
     </main>
   );
+}
+
+function minimumBoardContrast(background: string, backgroundOpacity: number, text: string, textOpacity: number) {
+  const backgroundRgb = hexToRgb(background);
+  const textRgb = hexToRgb(text);
+  return Math.min(...[0, 255].map((backdrop) => {
+    const backdropRgb: [number, number, number] = [backdrop, backdrop, backdrop];
+    const effectiveBackground = compositeRgb(backgroundRgb, backgroundOpacity, backdropRgb);
+    const effectiveText = compositeRgb(textRgb, textOpacity, effectiveBackground);
+    return contrastRatio(effectiveText, effectiveBackground);
+  }));
+}
+
+function hexToRgb(value: string): [number, number, number] {
+  const normalized = value.replace('#', '');
+  const safe = normalized.length === 6 ? normalized : '000000';
+  return [0, 2, 4].map((offset) => Number.parseInt(safe.slice(offset, offset + 2), 16)) as [number, number, number];
+}
+
+function compositeRgb(foreground: [number, number, number], opacity: number, background: [number, number, number]) {
+  const alpha = Math.min(1, Math.max(0, opacity));
+  return foreground.map((channel, index) => channel * alpha + background[index] * (1 - alpha)) as [number, number, number];
+}
+
+function contrastRatio(first: [number, number, number], second: [number, number, number]) {
+  const firstLuminance = relativeLuminance(first);
+  const secondLuminance = relativeLuminance(second);
+  const lighter = Math.max(firstLuminance, secondLuminance);
+  const darker = Math.min(firstLuminance, secondLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function relativeLuminance(rgb: [number, number, number]) {
+  const [red, green, blue] = rgb.map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return red * 0.2126 + green * 0.7152 + blue * 0.0722;
 }
 
 function StreakEditor({ state, patchState }: { state: AppState; patchState: (mutator: (draft: AppState) => AppState) => void }) {

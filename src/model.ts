@@ -5,6 +5,17 @@ export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 's
 export type MetricWidgetId = 'session' | 'today' | 'streaks';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
+export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
+export const DEFAULT_BOARD_APPEARANCE = {
+  background: '#000000',
+  backgroundOpacity: 0.9,
+  textColor: '#ffffff',
+  textOpacity: 1,
+  secondaryTextColor: '#ffffff',
+  secondaryTextOpacity: DEFAULT_SECONDARY_TEXT_OPACITY,
+  secondaryTextDefaultVersion: 2,
+} as const;
+
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', 'session', 'today', 'streaks'];
 
 export interface SessionState {
@@ -52,6 +63,7 @@ export interface Settings {
   textOpacity?: number;
   secondaryTextColor?: string;
   secondaryTextOpacity?: number;
+  secondaryTextDefaultVersion?: number;
   showMetricSeconds?: boolean;
   note?: string;
   offstreamEnabled?: boolean;

@@ -858,6 +858,14 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .color-swatch input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .opacity-range { width: 100%; min-width: 0; accent-color: var(--accent); cursor: pointer; }
 .color-control-row output { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; text-align: right; }
+.color-accessibility-footer { max-width: 520px; margin-top: 10px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.color-accessibility-footer p { min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
+.color-accessibility-footer p strong { color: var(--ink); font-size: 9px; }
+.color-accessibility-footer p strong span { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.color-accessibility-footer .contrast-warning { color: var(--danger); }
+.color-accessibility-footer p span { color: var(--muted); font-size: 8px; line-height: 1.5; }
+.color-accessibility-footer button { flex: 0 0 auto; min-height: 30px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 0 9px; background: var(--field); color: var(--ink); font-size: 9px; font-weight: 700; cursor: pointer; }
+.color-accessibility-footer button:hover { background: var(--surface-muted); }
 .switch-row { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .switch-row > span { display: flex; flex-direction: column; gap: 5px; }
 .switch-row strong { font-size: 12px; }

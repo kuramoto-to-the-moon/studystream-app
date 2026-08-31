@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { AppState, MetricKind, SessionState, WidgetId } from './model';
 import {
   defaultMetricKinds,
+  DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
   formatDuration,
   metricLabels,
@@ -45,7 +46,7 @@ export function Board({
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
     '--board-subtext': hexToRgba(
       settings.secondaryTextColor ?? settings.textColor,
-      settings.secondaryTextOpacity ?? 0.62,
+      settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
     ),
   } as CSSProperties;
   const visibleWidgets = [...settings.widgets]
