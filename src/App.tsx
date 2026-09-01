@@ -541,6 +541,7 @@ function EditorPage({
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
                     <div className="metric-slot-row" key={kind}>
+                      <span>{metricLabels[interfaceLanguage][kind]}</span>
                       <VisibilityButton
                         label={metricLabels[interfaceLanguage][kind]}
                         visible={widget?.visible ?? true}
@@ -555,7 +556,6 @@ function EditorPage({
                           }));
                         }}
                       />
-                      <span>{metricLabels[interfaceLanguage][kind]}</span>
                     </div>
                   );
                 })}
