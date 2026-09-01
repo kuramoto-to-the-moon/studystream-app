@@ -296,25 +296,34 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
   const metricWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
   const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks').length;
   const hasExtraItem = metricWidgets.some((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
-  const hasSupplement = visibleWidgets.some((widget) => widget.id === 'offstream') || hasExtraItem;
+  const supplementCount = (visibleWidgets.some((widget) => widget.id === 'offstream') ? 1 : 0) + (hasExtraItem ? 1 : 0);
+  const hasSupplement = supplementCount > 0;
+  const hasMessage = visibleWidgets.some((widget) => widget.id === 'message');
+  const hasNote = visibleWidgets.some((widget) => widget.id === 'note');
 
   if (state.settings.layout === 'vertical') {
     const has = (id: (typeof visibleWidgets)[number]['id']) => visibleWidgets.some((widget) => widget.id === id);
     const calculatedHeight = (has('state') ? 43 : 0)
       + (has('timer') ? 84 : 0)
-      + (has('message') ? 72 : 0)
-      + (metricCount > 0 ? 24 + metricCount * 14 + Math.max(0, metricCount - 1) * 10 : 0)
-      + (hasSupplement ? 39 : 0)
-      + (has('note') ? 43 : 0);
+      // Messages and notes can occupy up to three lines. Recommend the
+      // maximum rendered height so OBS never crops longer viewer copy.
+      + (hasMessage ? 79 : 0)
+      + (metricCount > 0 ? 24 + metricCount * 18 + Math.max(0, metricCount - 1) * 10 : 0)
+      + (hasSupplement ? 16 + supplementCount * 18 + Math.max(0, supplementCount - 1) * 6 : 0)
+      + (hasNote ? 65 : 0);
     return { width: 320, height: Math.min(520, Math.max(84, calculatedHeight)) };
   }
 
-  const auxiliaryRows = (hasSupplement ? 1 : 0)
-    + (visibleWidgets.some((widget) => widget.id === 'note') ? 1 : 0);
-
   const hasMainRow = visibleWidgets.some((widget) => ['state', 'timer', 'message'].includes(widget.id));
   const hasMetrics = metricCount > 0;
-  return { width: 600, height: (hasMainRow ? 56 : 0) + (hasMetrics ? 34 : 0) + auxiliaryRows * 28 };
+  const mainRowHeight = hasMainRow ? (hasMessage ? 83 : 56) : 0;
+  return {
+    width: 600,
+    height: mainRowHeight
+      + (hasMetrics ? 34 : 0)
+      + (hasSupplement ? 28 : 0)
+      + (hasNote ? 45 : 0),
+  };
 }
 
 function ControlPage({
