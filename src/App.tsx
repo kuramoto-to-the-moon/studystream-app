@@ -287,9 +287,25 @@ function VisibilityButton({ label, visible, onToggle }: { label: string; visible
 }
 
 function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>) {
-  if (state.settings.layout === 'vertical') return { width: 320, height: 520 };
-
   const note = state.settings.note?.trim() ?? '';
+  const offstreamVisible = state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0;
+  const visibleWidgets = state.settings.widgets.filter((widget) => widget.visible
+    && (widget.id !== 'note' || note.length > 0)
+    && (widget.id !== 'offstream' || offstreamVisible));
+
+  if (state.settings.layout === 'vertical') {
+    const has = (id: (typeof visibleWidgets)[number]['id']) => visibleWidgets.some((widget) => widget.id === id);
+    const metricCount = visibleWidgets.filter((widget) => ['session', 'today', 'streaks'].includes(widget.id)).length;
+    const calculatedHeight = 24
+      + (has('state') ? 56 : 0)
+      + (has('timer') ? 168 : 0)
+      + (has('message') ? 96 : 0)
+      + (metricCount > 0 ? 24 + metricCount * 42 : 0)
+      + (has('offstream') ? 68 : 0)
+      + (has('note') ? 78 : 0);
+    return { width: 320, height: Math.min(760, Math.max(300, calculatedHeight)) };
+  }
+
   const auxiliaryRows = state.settings.widgets.filter((widget) => widget.visible && (
     (widget.id === 'note' && note.length > 0)
     || (widget.id === 'offstream' && state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0)
@@ -434,6 +450,7 @@ function EditorPage({
     state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
   );
   const secondaryContrastLevel = secondaryContrast >= 7 ? 'AAA' : secondaryContrast >= 4.5 ? 'AA' : 'AA未満';
+  const previewSize = recommendedObsSize(state, session);
 
   useEffect(() => {
     const media = window.matchMedia(EDITOR_PREVIEW_QUERY);
@@ -473,7 +490,10 @@ function EditorPage({
           <h2>視聴者表示プレビュー</h2>
           <span>OBSに表示される画面</span>
         </div>
-        <div className={`preview-canvas editor-canvas preview-${state.settings.layout}`}>
+        <div
+          className={`preview-canvas editor-canvas preview-${state.settings.layout}`}
+          style={{ '--board-preview-height': `${previewSize.height}px` } as React.CSSProperties}
+        >
           <Board
             state={state}
             session={session}

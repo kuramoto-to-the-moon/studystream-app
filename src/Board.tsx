@@ -36,7 +36,7 @@ export function Board({
   const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
   const visibleStreaks = settings.streaks.filter((item) => item.visible);
   const currentStreak = visibleStreaks.length > 0
-    ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
+    ? visibleStreaks[Math.floor(now / 4500) % visibleStreaks.length]
     : undefined;
   const currentStreakDays = currentStreak && currentStreak.kind !== 'count'
     ? streakDays(currentStreak.startedOn || '', currentStreak.dayMode, currentStreak.includedWeekdays)
@@ -55,15 +55,21 @@ export function Board({
       && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0)))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
   const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
+  const clock = formatClock(remaining);
+  const clockSecondsStart = clock.lastIndexOf(':');
+  const clockMain = clock.slice(0, clockSecondsStart);
+  const clockSeconds = clock.slice(clockSecondsStart);
 
   const durationContent = (seconds: number) => {
     if (!settings.showMetricSeconds) return <strong>{formatDuration(seconds, language)}</strong>;
     const hours = Math.floor(Math.max(0, seconds) / 3600);
+    const minutes = Math.floor((Math.max(0, seconds) % 3600) / 60);
+    const secondsPart = Math.max(0, Math.floor(seconds)) % 60;
     const lengthClass = hours >= 10_000 ? ' is-very-long' : hours >= 100 ? ' is-long' : '';
     return (
       <span className={`board-metric-time${lengthClass}`}>
-        <strong>{formatDuration(seconds, language)}</strong>
-        <small>{Math.max(0, Math.floor(seconds)) % 60}{language === 'ja' ? '秒' : 's'}</small>
+        <strong>{`${hours.toLocaleString('en-US')}:${String(minutes).padStart(2, '0')}`}</strong>
+        <small>{`:${String(secondsPart).padStart(2, '0')}`}</small>
       </span>
     );
   };
@@ -92,7 +98,9 @@ export function Board({
     state: <strong className="board-state">{phaseLabel(session, language)}</strong>,
     timer: (
       <span className="board-timer-wrap">
-        <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>{formatClock(remaining)}</strong>
+        <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>
+          <span>{clockMain}</span><span>{clockSeconds}</span>
+        </strong>
         <span>{copy.remaining}</span>
       </span>
     ),
@@ -121,19 +129,17 @@ export function Board({
     </article>
   );
 
-  const primaryWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer');
-  const messageWidgets = visibleWidgets.filter((widget) => widget.id === 'message');
+  const mainWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer' || widget.id === 'message');
   const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'offstream' || widget.id === 'note');
   const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
 
   return (
     <div
-      className={`board board-${settings.layout} board-lang-${language}${noteWidgets.length > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${noteWidgets.length}` : ''}`}
+      className={`board board-${settings.layout} board-lang-${language}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${noteWidgets.length > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${noteWidgets.length}` : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
-      {primaryWidgets.length > 0 && <div className="board-row board-primary-row">{primaryWidgets.map(renderWidget)}</div>}
-      {messageWidgets.length > 0 && <div className="board-row board-message-row">{messageWidgets.map(renderWidget)}</div>}
+      {mainWidgets.length > 0 && <div className="board-row board-main-row">{mainWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
       {noteWidgets.length > 0 && (
         <div className="board-auxiliary-rows">
