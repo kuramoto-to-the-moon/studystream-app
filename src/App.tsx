@@ -339,16 +339,7 @@ function ControlPage({
     Math.max(0, Number(offstreamHours) || 0) * 60
     + Math.max(0, Number(offstreamMinutes) || 0)
   ) * 60;
-  const usePrimaryAction = () => {
-    if (session.phase === 'study' && !isIntervalCompleted) {
-      actions.toggleTracking();
-      return;
-    }
-    actions.startStudy();
-  };
-  const primaryLabel = session.phase === 'study' && !isIntervalCompleted
-    ? (session.tracking ? '一時停止' : '再開')
-    : '学習を開始';
+  const studyIsActive = session.phase === 'study' && !isIntervalCompleted;
   const breakIsRunning = session.phase === 'break' && !isIntervalCompleted;
   const addOffstreamStudy = (event: React.FormEvent) => {
     event.preventDefault();
@@ -392,13 +383,32 @@ function ControlPage({
             </div>
           </div>
 
-          <div className="control-actions" aria-label="配信状態">
-            <button type="button" className={`button${session.phase === 'study' && !isIntervalCompleted ? ' active' : ''}`} onClick={usePrimaryAction}>
-              {primaryLabel}
-            </button>
-            <button type="button" className={`button${breakIsRunning ? ' active' : ''}`} disabled={session.phase === 'idle' || breakIsRunning} onClick={actions.startBreak}>
-              {breakIsRunning ? '休憩中' : '休憩を開始'}
-            </button>
+          <div className="control-actions" aria-label="配信状態と操作">
+            <div className="phase-switch" aria-label="配信状態">
+              <button
+                type="button"
+                className={`phase-select-button${studyIsActive ? ' active' : ''}`}
+                aria-pressed={studyIsActive}
+                disabled={studyIsActive}
+                onClick={actions.startStudy}
+              >
+                学習
+              </button>
+              <button
+                type="button"
+                className={`phase-select-button${breakIsRunning ? ' active' : ''}`}
+                aria-pressed={breakIsRunning}
+                disabled={session.phase === 'idle' || breakIsRunning}
+                onClick={actions.startBreak}
+              >
+                休憩
+              </button>
+            </div>
+            {studyIsActive && (
+              <button type="button" className="tracking-action-button" onClick={actions.toggleTracking}>
+                {session.tracking ? '一時停止' : '再開'}
+              </button>
+            )}
           </div>
         </div>
 
