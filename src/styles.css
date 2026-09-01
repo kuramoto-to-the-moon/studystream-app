@@ -23,7 +23,7 @@
   --line-strong: #d8d8d5;
   --checker-a: #e8e8e6;
   --checker-b: #f5f5f3;
-  --mono: "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", "Roboto Mono", ui-monospace, monospace;
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", "Roboto Mono", ui-monospace, monospace;
 }
 
 :root[data-theme="dark"] {
@@ -481,7 +481,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .board-horizontal .board-main-row .widget-message {
   flex: 1 1 auto;
   align-self: stretch;
-  border-left: 1px solid color-mix(in srgb, var(--board-text) 18%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--board-text) 12%, transparent);
   padding-left: 12px;
 }
 .board-horizontal .board-metrics-row {
@@ -513,7 +513,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   overflow: hidden;
   font-size: 12px;
   line-height: 1;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
