@@ -858,26 +858,25 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
         <button type="button" className="add-streak-button" onClick={addItem}>＋ 追加</button>
       </div>
       {state.settings.streaks.length > 0 ? (
-        <div className="streak-list">
-          {state.settings.streaks.map((item) => (
-            <div key={item.id} className={`streak-list-row${item.id === streak?.id ? ' active' : ''}`}>
-              <button type="button" aria-pressed={item.id === streak?.id} onClick={() => setSelectedId(item.id)}>
-                <strong>{item.name || '名称未設定'}</strong>
-                <small>{item.kind === 'count' ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}` : '開始日からの日数'}</small>
-              </button>
+        <div className="streak-selector-row">
+          <select aria-label="編集する項目" value={streak?.id ?? ''} onChange={(event) => setSelectedId(event.target.value)}>
+            {state.settings.streaks.map((item) => {
+              const value = item.kind === 'count'
+                ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}`
+                : '継続日数';
+              return <option key={item.id} value={item.id}>{item.name || '名称未設定'}（{value}）</option>;
+            })}
+          </select>
+          {streak && (
+            <span className="streak-visibility-control">
+              <span>表示</span>
               <VisibilityButton
-                label={item.name || '名称未設定'}
-                visible={item.visible}
-                onToggle={() => {
-                  const visible = !item.visible;
-                  patchState((current) => ({
-                    ...current,
-                    settings: { ...current.settings, streaks: current.settings.streaks.map((currentItem) => currentItem.id === item.id ? { ...currentItem, visible } : currentItem) },
-                  }));
-                }}
+                label={streak.name || '名称未設定'}
+                visible={streak.visible}
+                onToggle={() => change({ visible: !streak.visible })}
               />
-            </div>
-          ))}
+            </span>
+          )}
         </div>
       ) : <p className="empty-settings">まだ項目がありません。「追加」から作成できます。</p>}
       {visibleItemCount > 1 && <p className="streak-rotation-note">ボードでは表示中の{visibleItemCount}項目を6秒ごとに切り替えます</p>}
