@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, MetricWidgetId, Streak } from './model';
+import type { AppState, MetricWidgetId, Streak, WidgetId } from './model';
 import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
@@ -465,7 +465,10 @@ function EditorPage({
   const [widePreview, setWidePreview] = useState(() => window.matchMedia(EDITOR_PREVIEW_QUERY).matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
   const metricKinds = resolveMetricKinds(state.settings.metricKinds);
-  const anyMetricVisible = metricSlotIds.some((slotId) =>
+  const timeMetricKinds = metricKindIds.filter((kind) => kind !== 'streaks');
+  const timeMetricSlotIds = timeMetricKinds.map((kind) => metricSlotIds.find((slotId) => metricKinds[slotId] === kind)!);
+  const streakMetricSlotId = metricSlotIds.find((slotId) => metricKinds[slotId] === 'streaks')!;
+  const anyMetricVisible = timeMetricSlotIds.some((slotId) =>
     state.settings.widgets.find((widget) => widget.id === slotId)?.visible ?? true
   );
   const currentMessageKey = phaseKey(session);
@@ -478,6 +481,16 @@ function EditorPage({
   );
   const secondaryContrastLevel = secondaryContrast >= 7 ? 'AAA' : secondaryContrast >= 4.5 ? 'AA' : 'AA未満';
   const previewSize = recommendedObsSize(state, session);
+  const setWidgetVisible = (id: WidgetId, visible: boolean) => {
+    patchState((current) => ({
+      ...current,
+      settings: {
+        ...current.settings,
+        widgets: current.settings.widgets.map((item) => item.id === id ? { ...item, visible } : item),
+      },
+    }));
+  };
+  const widgetIsVisible = (id: WidgetId) => state.settings.widgets.find((item) => item.id === id)?.visible ?? true;
 
   useEffect(() => {
     const media = window.matchMedia(EDITOR_PREVIEW_QUERY);
@@ -534,24 +547,16 @@ function EditorPage({
               <h2>表示内容</h2>
               <p>視聴者に見せる情報を選びます</p>
             </div>
-            <section className="settings-section" aria-label="基本表示">
-              <div className="settings-section-heading settings-section-heading-compact"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
+            <section className="settings-section" aria-label="メイン表示">
+              <div className="settings-section-heading"><strong>メイン表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id) && (widget.id !== 'offstream' || state.settings.offstreamEnabled)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <div key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <VisibilityButton
                       label={widgetLabels[interfaceLanguage][widget.id]}
                       visible={widget.visible}
-                      onToggle={() => {
-                        patchState((current) => ({
-                          ...current,
-                          settings: {
-                            ...current.settings,
-                            widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: !widget.visible } : item),
-                          },
-                        }));
-                      }}
+                      onToggle={() => setWidgetVisible(widget.id, !widget.visible)}
                     />
                   </div>
                 ))}
@@ -559,9 +564,9 @@ function EditorPage({
             </section>
             <section className="settings-section">
               <div className="settings-section-heading settings-section-heading-with-action">
-                <div className="settings-section-heading-copy"><strong>集計表示</strong><span>表示したい集計を選びます</span></div>
+                <div className="settings-section-heading-copy"><strong>学習時間</strong><span>表示する期間を選びます</span></div>
                 <VisibilityButton
-                  label="すべての集計表示"
+                  label="すべての学習時間"
                   visible={anyMetricVisible}
                   onToggle={() => {
                     const visible = !anyMetricVisible;
@@ -570,7 +575,7 @@ function EditorPage({
                       settings: {
                         ...current.settings,
                         widgets: current.settings.widgets.map((item) =>
-                          metricSlotIds.includes(item.id as MetricWidgetId) ? { ...item, visible } : item
+                          timeMetricSlotIds.includes(item.id as MetricWidgetId) ? { ...item, visible } : item
                         ),
                       },
                     }));
@@ -578,7 +583,7 @@ function EditorPage({
                 />
               </div>
               <div className="metric-slot-list">
-                {metricKindIds.map((kind) => {
+                {timeMetricKinds.map((kind) => {
                   const slotId = metricSlotIds.find((candidate) => metricKinds[candidate] === kind)!;
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
@@ -587,23 +592,14 @@ function EditorPage({
                       <VisibilityButton
                         label={metricLabels[interfaceLanguage][kind]}
                         visible={widget?.visible ?? true}
-                        onToggle={() => {
-                          const visible = !(widget?.visible ?? true);
-                          patchState((current) => ({
-                            ...current,
-                            settings: {
-                              ...current.settings,
-                              widgets: current.settings.widgets.map((item) => item.id === slotId ? { ...item, visible } : item),
-                            },
-                          }));
-                        }}
+                        onToggle={() => setWidgetVisible(slotId, !(widget?.visible ?? true))}
                       />
                     </div>
                   );
                 })}
               </div>
               <label className="metric-seconds-option">
-                <span><strong>集計時間を秒まで表示</strong><small>秒は小さく分けて表示します</small></span>
+                <span><strong>秒まで表示</strong><small>時間・分と分けて表示します</small></span>
                 <input
                   type="checkbox"
                   checked={state.settings.showMetricSeconds ?? false}
@@ -611,12 +607,49 @@ function EditorPage({
                 />
               </label>
             </section>
-            <details className="settings-section streak-manager">
-              <summary><span><strong>その他の項目</strong><small>日数や回数などを管理</small></span><span aria-hidden="true">開く</span></summary>
-              <StreakEditor state={state} patchState={patchState} />
-            </details>
-            <section className="settings-section">
-              <div className="settings-section-heading"><strong>配信表示の言語</strong><span>ラベルと時間表記が変わります</span></div>
+            <section className="settings-section additional-display-section">
+              <div className="settings-section-heading"><strong>追加表示</strong><span>必要な情報だけ追加します</span></div>
+              <div className="additional-display-list">
+                <div className="additional-display-item offstream-display-item">
+                  <label className="additional-feature-toggle">
+                    <span><strong>配信外の学習</strong><small>ホームから時間を追加し、学習時間に反映</small></span>
+                    <span className="compact-toggle-label">使う<input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} /></span>
+                  </label>
+                  {state.settings.offstreamEnabled && (
+                    <div className="additional-display-subrow">
+                      <span>ボードに表示</span>
+                      <VisibilityButton
+                        label="配信外の学習"
+                        visible={widgetIsVisible('offstream')}
+                        onToggle={() => setWidgetVisible('offstream', !widgetIsVisible('offstream'))}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="additional-display-item additional-display-row">
+                  <span><strong>常時表示する注記</strong><small>文言は「メッセージ」で設定</small></span>
+                  <VisibilityButton
+                    label="常時表示する注記"
+                    visible={widgetIsVisible('note')}
+                    onToggle={() => setWidgetVisible('note', !widgetIsVisible('note'))}
+                  />
+                </div>
+                <div className="additional-display-item additional-display-row">
+                  <span><strong>その他の項目</strong><small>日数や回数などの記録</small></span>
+                  <VisibilityButton
+                    label="その他の項目"
+                    visible={widgetIsVisible(streakMetricSlotId)}
+                    onToggle={() => setWidgetVisible(streakMetricSlotId, !widgetIsVisible(streakMetricSlotId))}
+                  />
+                </div>
+              </div>
+              <details className="streak-manager additional-streak-manager">
+                <summary><span><strong>項目を管理</strong><small>追加・編集・削除</small></span><span aria-hidden="true">開く</span></summary>
+                <StreakEditor state={state} patchState={patchState} />
+              </details>
+            </section>
+            <section className="settings-section language-settings-section">
+              <div className="settings-section-heading"><strong>表示言語</strong><span>視聴者向けのラベルと時間表記</span></div>
               <select
                 className="language-select"
                 aria-label="配信表示の言語"
@@ -626,12 +659,6 @@ function EditorPage({
                 <option value="ja">日本語</option>
                 <option value="en">English</option>
               </select>
-            </section>
-            <section className="settings-section">
-              <label className="feature-toggle-row">
-                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日・各期間の集計に反映します</small></span>
-                <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
-              </label>
             </section>
           </div>
         )}
