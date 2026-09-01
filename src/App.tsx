@@ -433,8 +433,10 @@ function ControlPage({
         <div className="session-control-column">
           <div className="phase-summary">
             <div className="phase-status-line">
-              <i aria-hidden="true" />
-              <h1>{phaseLabel(session, 'ja')}</h1>
+              <h1>
+                <span>{phaseLabel(session, 'ja')}</span>
+                {timerIsPaused && <small>停止中</small>}
+              </h1>
             </div>
             <div className="control-clock">
               <strong>{formatClock(remainingSeconds(session, now))}</strong>

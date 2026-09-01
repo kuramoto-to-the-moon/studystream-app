@@ -9,6 +9,7 @@ import {
   metricSeconds,
   phaseKey,
   phaseLabel,
+  phaseTimerPaused,
   remainingSeconds,
   resolveMetricKinds,
   streakDays,
@@ -31,6 +32,7 @@ export function Board({
   const language = settings.language;
   const copy = uiCopy[language];
   const key = phaseKey(session);
+  const timerPaused = phaseTimerPaused(session);
   const remaining = remainingSeconds(session, now);
   const message = settings.messages[key];
   const note = settings.note?.trim() ?? '';
@@ -104,6 +106,7 @@ export function Board({
     state: (
       <strong className="board-state">
         <span>{phaseLabel(session, language)}</span>
+        {timerPaused && <small>{language === 'ja' ? '停止中' : 'Paused'}</small>}
       </strong>
     ),
     timer: (

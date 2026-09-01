@@ -335,11 +335,11 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   flex-direction: column;
   align-items: flex-start;
 }
-.phase-status-line { min-width: 0; display: flex; align-items: center; gap: 9px; }
-.phase-status-line i { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
+.phase-status-line { min-width: 0; display: flex; align-items: center; }
 .eyebrow { margin: 0; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; }
 h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
-.phase-summary h1 { font-size: 15px; line-height: 1.2; font-weight: 750; letter-spacing: 0; white-space: nowrap; }
+.phase-summary h1 { min-width: 0; display: flex; align-items: baseline; gap: 7px; font-size: 15px; line-height: 1.2; font-weight: 750; letter-spacing: 0; white-space: nowrap; }
+.phase-summary h1 small { color: var(--muted); font-size: 9px; font-weight: 650; }
 .control-clock { min-width: 0; margin-top: 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .control-clock strong {
   box-sizing: content-box;
@@ -529,7 +529,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .board-state {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   overflow: hidden;
   font-size: 12px;
   line-height: 1;
@@ -538,15 +538,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.board-state::before {
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: .88;
-  content: "";
-}
+.board-state small { color: var(--board-subtext); font-size: 9px; font-weight: 500; }
 .board-lang-en .board-state { font-size: 12px; letter-spacing: 0; }
 .board-timer-wrap { width: auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .board-timer {

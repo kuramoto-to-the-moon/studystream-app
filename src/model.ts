@@ -224,8 +224,7 @@ export function phaseLabel(session: SessionState, language: Language) {
     return session.phase === 'study' ? '学習終了' : '休憩終了';
   }
   if (phaseTimerPaused(session)) {
-    if (language === 'en') return session.phase === 'study' ? 'Studying (paused)' : 'On break (paused)';
-    return session.phase === 'study' ? '学習中（停止中）' : '休憩中（停止中）';
+    return session.phase === 'study' ? uiCopy[language].study : uiCopy[language].break;
   }
   return uiCopy[language][phaseKey(session)];
 }
