@@ -1,7 +1,7 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
-export type BoardFont = 'sans' | 'system' | 'serif';
+export type BoardFont = 'sans' | 'system' | 'modern';
 export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
@@ -23,7 +23,7 @@ export const DEFAULT_BOARD_APPEARANCE = {
 
 export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
 export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
-export const boardFontIds: BoardFont[] = ['sans', 'system', 'serif'];
+export const boardFontIds: BoardFont[] = ['sans', 'system', 'modern'];
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
 
 export function normalizeViewerCopy(value: string, maxLength: number) {
@@ -36,6 +36,7 @@ export function clampIntervalMinutes(value: number) {
 }
 
 export function resolveBoardFont(value: unknown): BoardFont {
+  if (value === 'serif') return 'modern';
   return typeof value === 'string' && boardFontIds.includes(value as BoardFont)
     ? value as BoardFont
     : 'sans';

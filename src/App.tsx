@@ -868,7 +868,7 @@ function EditorPage({
                 {([
                   ['sans', '標準', '読みやすい定番'],
                   ['system', '端末標準', 'OSになじむ'],
-                  ['serif', '明朝', '落ち着いた印象'],
+                  ['modern', 'モダン', '数字がすっきり'],
                 ] as const).map(([font, label, description]) => (
                   <button
                     type="button"
