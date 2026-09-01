@@ -296,7 +296,8 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
   const metricWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
   const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks').length;
   const hasExtraItem = metricWidgets.some((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
-  const supplementCount = (visibleWidgets.some((widget) => widget.id === 'offstream') ? 1 : 0) + (hasExtraItem ? 1 : 0);
+  const visibleExtraItemCount = hasExtraItem ? state.settings.streaks.filter((item) => item.visible).length : 0;
+  const supplementCount = (visibleWidgets.some((widget) => widget.id === 'offstream') ? 1 : 0) + visibleExtraItemCount;
   const hasSupplement = supplementCount > 0;
   const hasMessage = visibleWidgets.some((widget) => widget.id === 'message');
   const hasNote = visibleWidgets.some((widget) => widget.id === 'note');
@@ -311,17 +312,18 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
       + (metricCount > 0 ? 24 + metricCount * 18 + Math.max(0, metricCount - 1) * 10 : 0)
       + (hasSupplement ? 16 + supplementCount * 18 + Math.max(0, supplementCount - 1) * 6 : 0)
       + (hasNote ? 65 : 0);
-    return { width: 320, height: Math.min(520, Math.max(84, calculatedHeight)) };
+    return { width: 320, height: Math.max(84, calculatedHeight) };
   }
 
   const hasMainRow = visibleWidgets.some((widget) => ['state', 'timer', 'message'].includes(widget.id));
   const hasMetrics = metricCount > 0;
   const mainRowHeight = hasMainRow ? (hasMessage ? 83 : 56) : 0;
+  const supplementRows = hasSupplement ? Math.max(1, Math.ceil(visibleExtraItemCount / 3)) : 0;
   return {
     width: 600,
     height: mainRowHeight
       + (hasMetrics ? 34 : 0)
-      + (hasSupplement ? 28 : 0)
+      + (hasSupplement ? 28 + Math.max(0, supplementRows - 1) * 20 : 0)
       + (hasNote ? 45 : 0),
   };
 }
@@ -774,15 +776,17 @@ function EditorPage({
                   <output>{Math.round((state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY) * 100)}%</output>
                 </div>
               </div>
-              <div className="color-accessibility-footer">
+              <div className="color-accessibility-row">
                 <p>
                   <strong>補助文字のコントラスト <span className={secondaryContrastLevel === 'AA未満' ? 'contrast-warning' : ''}>{secondaryContrast.toFixed(1)}:1・{secondaryContrastLevel}</span></strong>
                   <span>黒・白の映像上で低い方の目安です。小さい文字は4.5:1以上、できれば7:1以上を推奨します。</span>
                 </p>
+              </div>
+              <div className="color-reset-row">
                 <button
                   type="button"
                   onClick={() => patchSettings({ ...DEFAULT_BOARD_APPEARANCE })}
-                >色と透過を初期設定に戻す</button>
+                >初期設定に戻す</button>
               </div>
             </section>
           </div>
@@ -833,7 +837,6 @@ function relativeLuminance(rgb: [number, number, number]) {
 function StreakEditor({ state, patchState }: { state: AppState; patchState: (mutator: (draft: AppState) => AppState) => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(state.settings.streaks[0]?.id ?? null);
   const streak = state.settings.streaks.find((item) => item.id === selectedId) ?? state.settings.streaks[0];
-  const visibleItemCount = state.settings.streaks.filter((item) => item.visible).length;
   const change = (changes: Partial<Streak>) => {
     if (!streak) return;
     patchState((current) => ({
@@ -888,7 +891,6 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
           )}
         </div>
       ) : <p className="empty-settings">まだ項目がありません。「追加」から作成できます。</p>}
-      {visibleItemCount > 1 && <p className="streak-rotation-note">ボードでは表示中の{visibleItemCount}項目を6秒ごとに切り替えます</p>}
       {streak && (
         <div className="streak-detail">
           <div className="streak-detail-heading"><strong>編集</strong><span>{streak.name || '名称未設定'}</span></div>

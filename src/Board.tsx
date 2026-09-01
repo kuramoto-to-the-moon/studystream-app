@@ -36,12 +36,6 @@ export function Board({
   const note = settings.note?.trim() ?? '';
   const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
   const visibleStreaks = settings.streaks.filter((item) => item.visible);
-  const currentStreak = visibleStreaks.length > 0
-    ? visibleStreaks[Math.floor(now / 4500) % visibleStreaks.length]
-    : undefined;
-  const currentStreakDays = currentStreak && currentStreak.kind !== 'count'
-    ? streakDays(currentStreak.startedOn || '', currentStreak.dayMode, currentStreak.includedWeekdays)
-    : 0;
   const boardStyle = {
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
@@ -50,12 +44,15 @@ export function Board({
       settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
     ),
   } as CSSProperties;
+  const metricKinds = resolveMetricKinds(settings.metricKinds);
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
       && (widget.id !== 'note' || note.length > 0)
-      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0)))
+      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0))
+      && (!metricSlotIds.includes(widget.id as MetricWidgetId)
+        || metricKinds[widget.id as MetricWidgetId] !== 'streaks'
+        || visibleStreaks.length > 0))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
-  const metricKinds = resolveMetricKinds(settings.metricKinds);
   const clock = formatClock(remaining);
   const clockSecondsStart = clock.lastIndexOf(':');
   const clockMain = clock.slice(0, clockSecondsStart);
@@ -77,17 +74,24 @@ export function Board({
   };
 
   const metricContent = (kind: MetricKind) => kind === 'streaks' ? (
-    <span className="board-metric board-streak">
-      <span>{currentStreak?.name || metricLabels[language].streaks}</span>
-      <strong>
-        {currentStreak
-          ? currentStreak.kind === 'count'
-            ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
-            : currentStreakDays < 0
-              ? copy.beforeStart
-              : `${currentStreakDays}${language === 'ja' ? copy.days : ` ${copy.days}`}`
-          : '—'}
-      </strong>
+    <span className="board-streak-list">
+      {visibleStreaks.map((item) => {
+        const days = item.kind !== 'count'
+          ? streakDays(item.startedOn || '', item.dayMode, item.includedWeekdays)
+          : 0;
+        return (
+          <span className="board-metric board-streak" key={item.id}>
+            <span>{item.name || metricLabels[language].streaks}</span>
+            <strong>
+              {item.kind === 'count'
+                ? `${Math.max(0, Math.floor(item.count ?? 0)).toLocaleString(language)}${item.unit || (language === 'ja' ? '回' : ' times')}`
+                : days < 0
+                  ? copy.beforeStart
+                  : `${days}${language === 'ja' ? copy.days : ` ${copy.days}`}`}
+            </strong>
+          </span>
+        );
+      })}
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
