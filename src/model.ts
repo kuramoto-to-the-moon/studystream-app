@@ -198,10 +198,20 @@ export function phaseKey(session: SessionState) {
   return session.phase;
 }
 
+export function phaseTimerPaused(session: SessionState) {
+  return session.phase !== 'idle'
+    && !session.intervalCompleted
+    && session.phaseEndsAt === null
+    && session.pausedRemainingSeconds != null;
+}
+
 export function phaseLabel(session: SessionState, language: Language) {
   if (session.intervalCompleted) {
     if (language === 'en') return session.phase === 'study' ? 'Study finished' : 'Break finished';
     return session.phase === 'study' ? '学習終了' : '休憩終了';
+  }
+  if (session.phase === 'break' && phaseTimerPaused(session)) {
+    return language === 'en' ? 'Break paused' : '休憩を一時停止中';
   }
   return uiCopy[language][phaseKey(session)];
 }
@@ -239,8 +249,8 @@ function localDayKey(now: number) {
 }
 
 export function remainingSeconds(session: SessionState, now = Date.now()) {
-  if (session.phase === 'study' && !session.tracking && session.pausedRemainingSeconds != null) {
-    return Math.max(0, session.pausedRemainingSeconds);
+  if (phaseTimerPaused(session)) {
+    return Math.max(0, session.pausedRemainingSeconds ?? 0);
   }
   if (!session.phaseEndsAt) return 0;
   const effectiveNow = Math.max(now, session.lastCheckpointAt || now);

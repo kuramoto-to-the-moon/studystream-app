@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
+import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, phaseTimerPaused, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -222,11 +222,11 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         lastCheckpointAt: stamp,
       }));
     },
-    toggleTracking: () => {
+    togglePause: () => {
       prepareEnabledCompletionSound();
       changeSession((session, _current, stamp) => {
-        if (session.phase !== 'study') return { ...session, tracking: false };
-        if (session.tracking) {
+        if (session.phase === 'idle' || session.intervalCompleted) return session;
+        if (!phaseTimerPaused(session)) {
           return {
             ...session,
             tracking: false,
@@ -242,7 +242,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         );
         return {
           ...session,
-          tracking: true,
+          tracking: session.phase === 'study',
           intervalCompleted: false,
           phaseEndsAt: stamp + pausedRemaining * 1000,
           pausedRemainingSeconds: null,

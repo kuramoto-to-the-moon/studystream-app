@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricWidgetId, Streak } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, phaseKey, phaseLabel, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -340,7 +340,8 @@ function ControlPage({
     + Math.max(0, Number(offstreamMinutes) || 0)
   ) * 60;
   const studyIsActive = session.phase === 'study' && !isIntervalCompleted;
-  const breakIsRunning = session.phase === 'break' && !isIntervalCompleted;
+  const breakIsActive = session.phase === 'break' && !isIntervalCompleted;
+  const timerIsPaused = phaseTimerPaused(session);
   const addOffstreamStudy = (event: React.FormEvent) => {
     event.preventDefault();
     if (!offstreamSeconds) return;
@@ -396,17 +397,27 @@ function ControlPage({
               </button>
               <button
                 type="button"
-                className={`phase-select-button${breakIsRunning ? ' active' : ''}`}
-                aria-pressed={breakIsRunning}
-                disabled={session.phase === 'idle' || breakIsRunning}
+                className={`phase-select-button${breakIsActive ? ' active' : ''}`}
+                aria-pressed={breakIsActive}
+                disabled={session.phase === 'idle' || breakIsActive}
                 onClick={actions.startBreak}
               >
                 休憩
               </button>
             </div>
-            {studyIsActive && (
-              <button type="button" className="tracking-action-button" onClick={actions.toggleTracking}>
-                {session.tracking ? '一時停止' : '再開'}
+            {(studyIsActive || breakIsActive) && (
+              <button
+                type="button"
+                className="tracking-action-button"
+                aria-label={timerIsPaused ? '再開' : '一時停止'}
+                title={timerIsPaused ? '再開' : '一時停止'}
+                onClick={actions.togglePause}
+              >
+                {timerIsPaused ? (
+                  <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 5 8 5-8 5Z" /></svg>
+                ) : (
+                  <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 5v10M13 5v10" /></svg>
+                )}
               </button>
             )}
           </div>
