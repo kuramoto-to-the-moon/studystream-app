@@ -1,15 +1,18 @@
 import type { CSSProperties } from 'react';
-import type { AppState, MetricKind, SessionState, WidgetId } from './model';
+import type { AppState, MetricKind, MetricWidgetId, SessionState, WidgetId } from './model';
 import {
-  defaultMetricKinds,
   DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
-  formatDuration,
+  metricKindIds,
   metricLabels,
+  metricSlotIds,
   metricSeconds,
   phaseKey,
   phaseLabel,
+  phaseTimerPaused,
   remainingSeconds,
+  resolveBoardFont,
+  resolveMetricKinds,
   streakDays,
   uiCopy,
   widgetOrder,
@@ -30,17 +33,12 @@ export function Board({
   const language = settings.language;
   const copy = uiCopy[language];
   const key = phaseKey(session);
+  const timerPaused = phaseTimerPaused(session);
   const remaining = remainingSeconds(session, now);
   const message = settings.messages[key];
   const note = settings.note?.trim() ?? '';
   const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
   const visibleStreaks = settings.streaks.filter((item) => item.visible);
-  const currentStreak = visibleStreaks.length > 0
-    ? visibleStreaks[Math.floor(now / 6000) % visibleStreaks.length]
-    : undefined;
-  const currentStreakDays = currentStreak && currentStreak.kind !== 'count'
-    ? streakDays(currentStreak.startedOn || '', currentStreak.dayMode, currentStreak.includedWeekdays)
-    : 0;
   const boardStyle = {
     '--board-bg': hexToRgba(settings.background, settings.backgroundOpacity),
     '--board-text': hexToRgba(settings.textColor, settings.textOpacity ?? 1),
@@ -49,66 +47,93 @@ export function Board({
       settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
     ),
   } as CSSProperties;
+  const metricKinds = resolveMetricKinds(settings.metricKinds);
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
       && (widget.id !== 'note' || note.length > 0)
-      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0)))
+      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0))
+      && (!metricSlotIds.includes(widget.id as MetricWidgetId)
+        || metricKinds[widget.id as MetricWidgetId] !== 'streaks'
+        || visibleStreaks.length > 0))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
-  const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
+  const clock = formatClock(remaining);
+  const clockSecondsStart = clock.lastIndexOf(':');
+  const clockMain = clock.slice(0, clockSecondsStart);
+  const clockSeconds = clock.slice(clockSecondsStart);
 
   const durationContent = (seconds: number) => {
-    if (!settings.showMetricSeconds) return <strong>{formatDuration(seconds, language)}</strong>;
     const hours = Math.floor(Math.max(0, seconds) / 3600);
+    const minutes = Math.floor((Math.max(0, seconds) % 3600) / 60);
+    const secondsPart = Math.max(0, Math.floor(seconds)) % 60;
     const lengthClass = hours >= 10_000 ? ' is-very-long' : hours >= 100 ? ' is-long' : '';
+    const main = `${hours.toLocaleString('en-US')}:${String(minutes).padStart(2, '0')}`;
+    if (!settings.showMetricSeconds) return <strong className={lengthClass.trim()}>{main}</strong>;
     return (
       <span className={`board-metric-time${lengthClass}`}>
-        <strong>{formatDuration(seconds, language)}</strong>
-        <small>{Math.max(0, Math.floor(seconds)) % 60}{language === 'ja' ? '秒' : 's'}</small>
+        <strong>{main}</strong>
+        <small>{`:${String(secondsPart).padStart(2, '0')}`}</small>
       </span>
     );
   };
 
   const metricContent = (kind: MetricKind) => kind === 'streaks' ? (
-    <span className="board-metric board-streak">
-      <span>{currentStreak?.name || metricLabels[language].streaks}</span>
-      <strong>
-        {currentStreak
-          ? currentStreak.kind === 'count'
-            ? `${Math.max(0, Math.floor(currentStreak.count ?? 0)).toLocaleString(language)}${currentStreak.unit || (language === 'ja' ? '回' : ' times')}`
-            : currentStreakDays < 0
-              ? copy.beforeStart
-              : `${currentStreakDays}${language === 'ja' ? copy.days : ` ${copy.days}`}`
-          : '—'}
-      </strong>
+    <span className="board-streak-list">
+      {visibleStreaks.map((item) => {
+        const days = item.kind !== 'count'
+          ? streakDays(item.startedOn || '', item.dayMode, item.includedWeekdays)
+          : 0;
+        return (
+          <span className="board-metric board-streak" key={item.id}>
+            <span>{item.name || metricLabels[language].streaks}</span>
+            <strong>
+              {item.kind === 'count'
+                ? `${Math.max(0, Math.floor(item.count ?? 0)).toLocaleString(language)}${item.unit || (language === 'ja' ? '回' : ' times')}`
+                : days < 0
+                  ? copy.beforeStart
+                  : `${days}${language === 'ja' ? copy.days : ` ${copy.days}`}`}
+            </strong>
+          </span>
+        );
+      })}
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
-      <span>{metricLabels[language][kind]}</span>
+      <span>{kind === 'session' ? (language === 'ja' ? '現在の記録' : 'Current record') : metricLabels[language][kind]}</span>
       {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
 
   const content: Record<WidgetId, React.ReactNode> = {
-    state: <strong className="board-state">{phaseLabel(session, language)}</strong>,
+    state: (
+      <strong className="board-state">
+        <span>{timerPaused
+          ? (language === 'ja' ? '停止中' : 'Paused')
+          : phaseLabel(session, language)}</span>
+      </strong>
+    ),
     timer: (
       <span className="board-timer-wrap">
-        <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>{formatClock(remaining)}</strong>
+        <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>
+          <span>{clockMain}</span><span>{clockSeconds}</span>
+        </strong>
         <span>{copy.remaining}</span>
       </span>
     ),
-    message: <span className="board-message" title={message}>{message}</span>,
+    message: <span className="board-message">{message}</span>,
     offstream: (
       <span className="board-offstream">
-        <span>{language === 'ja' ? '配信外の学習' : 'Off-stream study'}</span>
-        <strong>{language === 'ja'
-          ? `今日は${formatDuration(offstreamTodaySeconds, language)}学習しました`
-          : `${formatDuration(offstreamTodaySeconds, language)} today`}</strong>
+        <span>{language === 'ja' ? '配信外' : 'Off-stream'}</span>
+        {durationContent(offstreamTodaySeconds)}
       </span>
     ),
-    note: <span className="board-note" title={note}>{note}</span>,
+    note: <span className="board-note">{note}</span>,
     session: metricContent(metricKinds.session),
     today: metricContent(metricKinds.today),
     streaks: metricContent(metricKinds.streaks),
+    metric4: metricContent(metricKinds.metric4),
+    metric5: metricContent(metricKinds.metric5),
+    metric6: metricContent(metricKinds.metric6),
+    metric7: metricContent(metricKinds.metric7),
   };
 
   const renderWidget = (widget: (typeof visibleWidgets)[number]) => (
@@ -121,22 +146,37 @@ export function Board({
     </article>
   );
 
-  const primaryWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer');
-  const messageWidgets = visibleWidgets.filter((widget) => widget.id === 'message');
-  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'offstream' || widget.id === 'note');
-  const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
+  const mainWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer' || widget.id === 'message');
+  const metricSlotWidgets = visibleWidgets
+    .filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId))
+    .sort((left, right) => (
+      metricKindIds.indexOf(metricKinds[left.id as MetricWidgetId])
+      - metricKindIds.indexOf(metricKinds[right.id as MetricWidgetId])
+    ));
+  const metricWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] !== 'streaks');
+  const extraWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] === 'streaks');
+  const supplementWidgets = [
+    ...visibleWidgets.filter((widget) => widget.id === 'offstream'),
+    ...extraWidgets,
+  ];
+  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'note');
+  const auxiliaryRowCount = (supplementWidgets.length > 0 ? 1 : 0) + (noteWidgets.length > 0 ? 1 : 0);
 
   return (
     <div
-      className={`board board-${settings.layout} board-lang-${language}${noteWidgets.length > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${noteWidgets.length}` : ''}`}
+      className={`board board-${settings.layout} board-lang-${language} board-font-${resolveBoardFont(settings.boardFont)}${settings.backgroundOpacity > 0 && settings.backgroundOpacity < 1 ? ' board-translucent' : ''}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${auxiliaryRowCount > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${auxiliaryRowCount}` : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
-      {primaryWidgets.length > 0 && <div className="board-row board-primary-row">{primaryWidgets.map(renderWidget)}</div>}
-      {messageWidgets.length > 0 && <div className="board-row board-message-row">{messageWidgets.map(renderWidget)}</div>}
+      {mainWidgets.length > 0 && <div className="board-row board-main-row">{mainWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
-      {noteWidgets.length > 0 && (
+      {auxiliaryRowCount > 0 && (
         <div className="board-auxiliary-rows">
+          {supplementWidgets.length > 0 && (
+            <div className="board-row board-note-row board-supplement-row">
+              {supplementWidgets.map(renderWidget)}
+            </div>
+          )}
           {noteWidgets.map((widget) => (
             <div key={`row-${widget.id}`} className={`board-row board-note-row board-note-row-${widget.id}`}>
               {renderWidget(widget)}

@@ -1,11 +1,16 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
-export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks';
-export type MetricWidgetId = 'session' | 'today' | 'streaks';
+export type BoardFont = 'sans' | 'system' | 'modern';
+export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
+export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
+export const MESSAGE_MAX_LENGTH = 60;
+export const NOTE_MAX_LENGTH = 80;
+export const MAX_INTERVAL_MINUTES = 24 * 60;
+export const MIN_INTERVAL_MINUTES = 1;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
   backgroundOpacity: 0.62,
@@ -17,7 +22,26 @@ export const DEFAULT_BOARD_APPEARANCE = {
   boardAppearanceDefaultVersion: 2,
 } as const;
 
-export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', 'session', 'today', 'streaks'];
+export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
+export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
+export const boardFontIds: BoardFont[] = ['sans', 'system', 'modern'];
+export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
+
+export function normalizeViewerCopy(value: string, maxLength: number) {
+  return value.replace(/\s+/g, ' ').trimStart().slice(0, maxLength);
+}
+
+export function clampIntervalMinutes(value: number) {
+  const minutes = Number.isFinite(value) ? Math.round(value) : MIN_INTERVAL_MINUTES;
+  return Math.min(MAX_INTERVAL_MINUTES, Math.max(MIN_INTERVAL_MINUTES, minutes));
+}
+
+export function resolveBoardFont(value: unknown): BoardFont {
+  if (value === 'serif') return 'modern';
+  return typeof value === 'string' && boardFontIds.includes(value as BoardFont)
+    ? value as BoardFont
+    : 'sans';
+}
 
 export interface SessionState {
   phase: Phase;
@@ -61,6 +85,7 @@ export interface Settings {
   completionSoundEnabled?: boolean;
   language: Language;
   layout: Layout;
+  boardFont?: BoardFont;
   background: string;
   backgroundOpacity: number;
   textColor: string;
@@ -73,7 +98,7 @@ export interface Settings {
   showMetricSeconds?: boolean;
   note?: string;
   offstreamEnabled?: boolean;
-  metricKinds?: Record<MetricWidgetId, MetricKind>;
+  metricKinds?: Partial<Record<MetricWidgetId, MetricKind>>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
   streaks: Streak[];
@@ -92,9 +117,13 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     message: 'メッセージ',
     offstream: '今日の配信外学習',
     note: '常時表示する注記',
-    session: '今回の学習時間',
+    session: '現在の記録',
     today: '今日',
     streaks: 'その他の項目',
+    metric4: '集計表示',
+    metric5: '集計表示',
+    metric6: '集計表示',
+    metric7: '集計表示',
   },
   en: {
     state: 'Status',
@@ -102,9 +131,13 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     message: 'Message',
     offstream: 'Off-stream study today',
     note: 'Always-visible note',
-    session: 'Session time',
+    session: 'Current record',
     today: 'Today',
     streaks: 'Streak',
+    metric4: 'Metric',
+    metric5: 'Metric',
+    metric6: 'Metric',
+    metric7: 'Metric',
   },
 };
 
@@ -117,7 +150,7 @@ export const uiCopy = {
     tracking: '学習時間を計測中',
     notTracking: '学習タイマーは一時停止中',
     remaining: '残り時間',
-    session: '今回の学習時間',
+    session: '現在の記録',
     today: '今日',
     total: '累計',
     days: '日',
@@ -131,7 +164,7 @@ export const uiCopy = {
     tracking: 'Study time is running',
     notTracking: 'Study time is paused',
     remaining: 'Time left',
-    session: 'Session time',
+    session: 'Current record',
     today: 'Today',
     total: 'Total',
     days: 'days',
@@ -141,7 +174,7 @@ export const uiCopy = {
 
 export const metricLabels: Record<Language, Record<MetricKind, string>> = {
   ja: {
-    session: '今回の学習時間',
+    session: '現在の記録',
     today: '今日',
     week: '今週',
     month: '今月',
@@ -150,7 +183,7 @@ export const metricLabels: Record<Language, Record<MetricKind, string>> = {
     streaks: 'その他の項目',
   },
   en: {
-    session: 'Session time',
+    session: 'Current record',
     today: 'Today',
     week: 'This week',
     month: 'This month',
@@ -164,24 +197,58 @@ export const defaultMetricKinds: Record<MetricWidgetId, MetricKind> = {
   session: 'session',
   today: 'today',
   streaks: 'streaks',
+  metric4: 'week',
+  metric5: 'month',
+  metric6: 'year',
+  metric7: 'total',
 };
 
+export function resolveMetricKinds(saved?: Partial<Record<MetricWidgetId, MetricKind>>): Record<MetricWidgetId, MetricKind> {
+  const preferred = { ...defaultMetricKinds, ...saved };
+  const used = new Set<MetricKind>();
+  const resolved = {} as Record<MetricWidgetId, MetricKind>;
+
+  metricSlotIds.forEach((slotId) => {
+    const preferredKind = preferred[slotId];
+    const kind = preferredKind && !used.has(preferredKind)
+      ? preferredKind
+      : metricKindIds.find((candidate) => !used.has(candidate))!;
+    resolved[slotId] = kind;
+    used.add(kind);
+  });
+
+  return resolved;
+}
+
 export function phaseKey(session: SessionState) {
-  if ((session.phase === 'study' || session.phase === 'break') && !session.tracking) return 'paused' as const;
+  if (phaseTimerPaused(session)) return 'paused' as const;
   return session.phase;
 }
 
-export function intervalDurationSeconds(settings: Settings, phase: Exclude<Phase, 'idle'>) {
+export function intervalDurationSeconds(
+  settings: Pick<Settings, 'studyMinutes' | 'breakMinutes' | 'studyDurationSeconds' | 'breakDurationSeconds'>,
+  phase: Exclude<Phase, 'idle'>,
+) {
   const configured = phase === 'study' ? settings.studyDurationSeconds : settings.breakDurationSeconds;
-  if (configured != null && Number.isFinite(configured)) return Math.max(1, Math.floor(configured));
+  if (configured != null && Number.isFinite(configured)) return Math.min(86_400, Math.max(1, Math.floor(configured)));
   const legacyMinutes = phase === 'study' ? settings.studyMinutes : settings.breakMinutes;
-  return Math.max(1, Math.floor(legacyMinutes * 60));
+  return Math.min(86_400, Math.max(1, Math.floor(legacyMinutes * 60)));
+}
+
+export function phaseTimerPaused(session: SessionState) {
+  return session.phase !== 'idle'
+    && !session.intervalCompleted
+    && session.phaseEndsAt === null
+    && session.pausedRemainingSeconds != null;
 }
 
 export function phaseLabel(session: SessionState, language: Language) {
   if (session.intervalCompleted) {
     if (language === 'en') return session.phase === 'study' ? 'Study finished' : 'Break finished';
     return session.phase === 'study' ? '学習終了' : '休憩終了';
+  }
+  if (phaseTimerPaused(session)) {
+    return session.phase === 'study' ? uiCopy[language].study : uiCopy[language].break;
   }
   return uiCopy[language][phaseKey(session)];
 }
@@ -219,8 +286,8 @@ function localDayKey(now: number) {
 }
 
 export function remainingSeconds(session: SessionState, now = Date.now()) {
-  if (session.phase !== 'idle' && !session.tracking && session.pausedRemainingSeconds != null) {
-    return Math.max(0, session.pausedRemainingSeconds);
+  if (phaseTimerPaused(session)) {
+    return Math.max(0, session.pausedRemainingSeconds ?? 0);
   }
   if (!session.phaseEndsAt) return 0;
   const effectiveNow = Math.max(now, session.lastCheckpointAt || now);

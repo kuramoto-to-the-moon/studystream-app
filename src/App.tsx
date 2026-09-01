@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, defaultMetricKinds, formatClock, formatDuration, intervalDurationSeconds, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import type { AppState, MetricWidgetId, SessionState, Streak, WidgetId } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, formatClock, formatDuration, intervalDurationSeconds, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveBoardFont, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -37,10 +37,10 @@ function DurationInput({ label, seconds, onChange }: { label: string; seconds: n
 
   function updatePart(part: 'hours' | 'minutes' | 'seconds', value: string) {
     const parsed = Math.max(0, Number.parseInt(value, 10) || 0);
-    const nextHours = part === 'hours' ? Math.min(99, parsed) : hours;
-    const nextMinutes = part === 'minutes' ? Math.min(59, parsed) : minutes;
-    const nextSeconds = part === 'seconds' ? Math.min(59, parsed) : remaining;
-    onChange(Math.max(1, nextHours * 3600 + nextMinutes * 60 + nextSeconds));
+    const nextHours = part === 'hours' ? Math.min(24, parsed) : hours;
+    const nextMinutes = part === 'minutes' ? Math.min(hours === 24 ? 0 : 59, parsed) : minutes;
+    const nextSeconds = part === 'seconds' ? Math.min(hours === 24 ? 0 : 59, parsed) : remaining;
+    onChange(Math.min(86_400, Math.max(1, nextHours * 3600 + nextMinutes * 60 + nextSeconds)));
   }
 
   return (
@@ -48,17 +48,17 @@ function DurationInput({ label, seconds, onChange }: { label: string; seconds: n
       <span>{label}</span>
       <div className="duration-fields">
         <label>
-          <input aria-label={`${label}時間`} type="number" min="0" max="99" step="1" inputMode="numeric" value={hours} onChange={(event) => updatePart('hours', event.target.value)} />
+          <input aria-label={`${label}時間`} type="number" min="0" max="24" step="1" inputMode="numeric" value={hours} onChange={(event) => updatePart('hours', event.target.value)} />
           <small>時</small>
         </label>
         <span aria-hidden="true">:</span>
         <label>
-          <input aria-label={`${label}分`} type="number" min="0" max="59" step="1" inputMode="numeric" value={minutes} onChange={(event) => updatePart('minutes', event.target.value)} />
+          <input aria-label={`${label}分`} type="number" min="0" max={hours === 24 ? 0 : 59} step="1" inputMode="numeric" value={minutes} onChange={(event) => updatePart('minutes', event.target.value)} />
           <small>分</small>
         </label>
         <span aria-hidden="true">:</span>
         <label>
-          <input aria-label={`${label}秒`} type="number" min="0" max="59" step="1" inputMode="numeric" value={remaining} onChange={(event) => updatePart('seconds', event.target.value)} />
+          <input aria-label={`${label}秒`} type="number" min="0" max={hours === 24 ? 0 : 59} step="1" inputMode="numeric" value={remaining} onChange={(event) => updatePart('seconds', event.target.value)} />
           <small>秒</small>
         </label>
       </div>
@@ -116,7 +116,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
   }
 
   function setIntervalDuration(phase: 'study' | 'break', seconds: number) {
-    const safeSeconds = Math.min(359_999, Math.max(1, Math.floor(seconds)));
+    const safeSeconds = Math.min(86_400, Math.max(1, Math.floor(seconds)));
     patchSettings(phase === 'study'
       ? { studyDurationSeconds: safeSeconds, studyMinutes: Math.max(1, Math.ceil(safeSeconds / 60)) }
       : { breakDurationSeconds: safeSeconds, breakMinutes: Math.max(1, Math.ceil(safeSeconds / 60)) });
@@ -194,7 +194,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               </div>
               <p>視聴者表示の色には影響しません</p>
               <div className="app-settings-group">
-                <span>インターバル</span>
+                <span>インターバル（最大24時間）</span>
                 <div className="interval-options">
                   <DurationInput
                     label="学習"
@@ -332,15 +332,45 @@ function VisibilityButton({ label, visible, onToggle }: { label: string; visible
 }
 
 function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typeof useStudyStream>['displaySession']>) {
-  if (state.settings.layout === 'vertical') return { width: 320, height: 520 };
-
   const note = state.settings.note?.trim() ?? '';
-  const auxiliaryRows = state.settings.widgets.filter((widget) => widget.visible && (
-    (widget.id === 'note' && note.length > 0)
-    || (widget.id === 'offstream' && state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0)
-  )).length;
+  const offstreamVisible = state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0;
+  const visibleWidgets = state.settings.widgets.filter((widget) => widget.visible
+    && (widget.id !== 'note' || note.length > 0)
+    && (widget.id !== 'offstream' || offstreamVisible));
+  const metricKinds = resolveMetricKinds(state.settings.metricKinds);
+  const metricWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
+  const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks').length;
+  const hasExtraItem = metricWidgets.some((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
+  const visibleExtraItemCount = hasExtraItem ? state.settings.streaks.filter((item) => item.visible).length : 0;
+  const supplementCount = (visibleWidgets.some((widget) => widget.id === 'offstream') ? 1 : 0) + visibleExtraItemCount;
+  const hasSupplement = supplementCount > 0;
+  const hasMessage = visibleWidgets.some((widget) => widget.id === 'message');
+  const hasNote = visibleWidgets.some((widget) => widget.id === 'note');
 
-  return { width: 600, height: 180 + auxiliaryRows * 52 };
+  if (state.settings.layout === 'vertical') {
+    const has = (id: (typeof visibleWidgets)[number]['id']) => visibleWidgets.some((widget) => widget.id === id);
+    const calculatedHeight = (has('state') ? 43 : 0)
+      + (has('timer') ? 84 : 0)
+      // Messages and notes can occupy up to three lines. Recommend the
+      // maximum rendered height so OBS never crops longer viewer copy.
+      + (hasMessage ? 79 : 0)
+      + (metricCount > 0 ? 24 + metricCount * 18 + Math.max(0, metricCount - 1) * 10 : 0)
+      + (hasSupplement ? 16 + supplementCount * 18 + Math.max(0, supplementCount - 1) * 6 : 0)
+      + (hasNote ? 65 : 0);
+    return { width: 320, height: Math.max(84, calculatedHeight) };
+  }
+
+  const hasMainRow = visibleWidgets.some((widget) => ['state', 'timer', 'message'].includes(widget.id));
+  const hasMetrics = metricCount > 0;
+  const mainRowHeight = hasMainRow ? (hasMessage ? 83 : 56) : 0;
+  const supplementRows = hasSupplement ? Math.max(1, Math.ceil(visibleExtraItemCount / 3)) : 0;
+  return {
+    width: 600,
+    height: mainRowHeight
+      + (hasMetrics ? 34 : 0)
+      + (hasSupplement ? 28 + Math.max(0, supplementRows - 1) * 20 : 0)
+      + (hasNote ? 45 : 0),
+  };
 }
 
 function ControlPage({
@@ -365,8 +395,9 @@ function ControlPage({
     Math.max(0, Number(offstreamHours) || 0) * 60
     + Math.max(0, Number(offstreamMinutes) || 0)
   ) * 60;
-  const hasActiveTimer = session.phase !== 'idle' && !isIntervalCompleted;
-  const timerActionLabel = hasActiveTimer && !session.tracking ? '再開' : '一時停止';
+  const studyIsActive = session.phase === 'study' && !isIntervalCompleted;
+  const breakIsActive = session.phase === 'break' && !isIntervalCompleted;
+  const timerIsPaused = phaseTimerPaused(session);
   const addOffstreamStudy = (event: React.FormEvent) => {
     event.preventDefault();
     if (!offstreamSeconds) return;
@@ -381,7 +412,7 @@ function ControlPage({
     <main className="page control-page">
       <header className="page-heading control-page-header">
         <div>
-          <h1>現在のセッション</h1>
+          <h1>学習タイマー</h1>
           <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
         </div>
         <div className="session-page-actions">
@@ -390,8 +421,8 @@ function ControlPage({
             <span>ボード編集</span>
           </button>
           {session.phase !== 'idle' && (
-            <button type="button" className="session-finish-button" aria-label="セッションを終了" onClick={actions.finish}>
-              <span>セッションを終了</span>
+            <button type="button" className="session-finish-button" onClick={actions.finish}>
+              記録を終了
             </button>
           )}
         </div>
@@ -400,8 +431,10 @@ function ControlPage({
         <div className="session-control-column">
           <div className="phase-summary">
             <div className="phase-status-line">
-              <i aria-hidden="true" />
-              <h1>{phaseLabel(session, 'ja')}</h1>
+              <h1>
+                <span>{phaseLabel(session, 'ja')}</span>
+                {timerIsPaused && <small>停止中</small>}
+              </h1>
             </div>
             <div className="control-clock">
               <strong>{formatClock(remainingSeconds(session, now))}</strong>
@@ -409,30 +442,42 @@ function ControlPage({
             </div>
           </div>
 
-          <div className="control-actions" aria-label="配信状態">
-            <div className="phase-selector" role="group" aria-label="状態を切り替える">
+          <div className="control-actions" aria-label="配信状態と操作">
+            <div className="phase-switch" aria-label="配信状態">
               <button
                 type="button"
-                className={session.phase === 'study' ? 'active' : ''}
-                aria-pressed={session.phase === 'study'}
-                disabled={session.phase === 'study'}
+                className={`phase-select-button${studyIsActive ? ' active' : ''}`}
+                aria-pressed={studyIsActive}
+                disabled={studyIsActive}
                 onClick={actions.startStudy}
               >
                 学習
               </button>
               <button
                 type="button"
-                className={session.phase === 'break' ? 'active' : ''}
-                aria-pressed={session.phase === 'break'}
-                disabled={session.phase === 'idle' || session.phase === 'break'}
+                className={`phase-select-button${breakIsActive ? ' active' : ''}`}
+                aria-pressed={breakIsActive}
+                disabled={session.phase === 'idle' || breakIsActive}
                 onClick={actions.startBreak}
               >
                 休憩
               </button>
             </div>
-            <button type="button" className={`button timer-action-button${timerActionLabel === '再開' ? ' is-resume' : ''}`} disabled={!hasActiveTimer} onClick={actions.toggleTracking}>
-              {timerActionLabel}
-            </button>
+            {(studyIsActive || breakIsActive) && (
+              <button
+                type="button"
+                className="tracking-action-button"
+                aria-label={timerIsPaused ? '再開' : '一時停止'}
+                title={timerIsPaused ? '再開' : '一時停止'}
+                onClick={actions.togglePause}
+              >
+                {timerIsPaused ? (
+                  <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 5 8 5-8 5Z" /></svg>
+                ) : (
+                  <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 5v10M13 5v10" /></svg>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -458,6 +503,66 @@ function ControlPage({
   );
 }
 
+function messagePreviewSession(
+  session: SessionState,
+  messageKey: keyof AppState['settings']['messages'],
+  now: number,
+  settings: Pick<AppState['settings'], 'studyMinutes' | 'breakMinutes' | 'studyDurationSeconds' | 'breakDurationSeconds'>,
+): SessionState {
+  const studySeconds = intervalDurationSeconds(settings, 'study');
+  const breakSeconds = intervalDurationSeconds(settings, 'break');
+
+  if (messageKey === 'study') {
+    return {
+      ...session,
+      phase: 'study',
+      tracking: true,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: now + studySeconds * 1000,
+      pausedRemainingSeconds: null,
+      lastCheckpointAt: now,
+    };
+  }
+
+  if (messageKey === 'paused') {
+    return {
+      ...session,
+      phase: 'study',
+      tracking: false,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: null,
+      pausedRemainingSeconds: studySeconds,
+      lastCheckpointAt: now,
+    };
+  }
+
+  if (messageKey === 'break') {
+    return {
+      ...session,
+      phase: 'break',
+      tracking: false,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: now + breakSeconds * 1000,
+      pausedRemainingSeconds: null,
+      lastCheckpointAt: now,
+    };
+  }
+
+  return {
+    ...session,
+    phase: 'idle',
+    tracking: false,
+    intervalCompleted: false,
+    phaseStartedAt: null,
+    phaseEndsAt: null,
+    pausedRemainingSeconds: null,
+    lastCheckpointAt: now,
+  };
+}
+
 function EditorPage({
   state,
   session,
@@ -477,7 +582,13 @@ function EditorPage({
   const [previewOpen, setPreviewOpen] = useState(() => window.localStorage.getItem(EDITOR_PREVIEW_STORAGE_KEY) === 'open');
   const [widePreview, setWidePreview] = useState(() => window.matchMedia(EDITOR_PREVIEW_QUERY).matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
-  const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
+  const metricKinds = resolveMetricKinds(state.settings.metricKinds);
+  const timeMetricKinds = metricKindIds.filter((kind) => kind !== 'streaks');
+  const timeMetricSlotIds = timeMetricKinds.map((kind) => metricSlotIds.find((slotId) => metricKinds[slotId] === kind)!);
+  const streakMetricSlotId = metricSlotIds.find((slotId) => metricKinds[slotId] === 'streaks')!;
+  const anyMetricVisible = timeMetricSlotIds.some((slotId) =>
+    state.settings.widgets.find((widget) => widget.id === slotId)?.visible ?? true
+  );
   const currentMessageKey = phaseKey(session);
   const showPreview = widePreview || previewOpen;
   const secondaryContrast = minimumBoardContrast(
@@ -487,6 +598,20 @@ function EditorPage({
     state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
   );
   const secondaryContrastLevel = secondaryContrast >= 7 ? 'AAA' : secondaryContrast >= 4.5 ? 'AA' : 'AA未満';
+  const previewSession = section === 'message'
+    ? messagePreviewSession(session, messageEditorKey, now, state.settings)
+    : session;
+  const previewSize = recommendedObsSize(state, previewSession);
+  const setWidgetVisible = (id: WidgetId, visible: boolean) => {
+    patchState((current) => ({
+      ...current,
+      settings: {
+        ...current.settings,
+        widgets: current.settings.widgets.map((item) => item.id === id ? { ...item, visible } : item),
+      },
+    }));
+  };
+  const widgetIsVisible = (id: WidgetId) => state.settings.widgets.find((item) => item.id === id)?.visible ?? true;
 
   useEffect(() => {
     const media = window.matchMedia(EDITOR_PREVIEW_QUERY);
@@ -499,14 +624,6 @@ function EditorPage({
   useEffect(() => {
     window.localStorage.setItem(EDITOR_PREVIEW_STORAGE_KEY, previewOpen ? 'open' : 'closed');
   }, [previewOpen]);
-
-  function changeMetricKind(slotId: MetricWidgetId, nextKind: MetricKind) {
-    const previousKind = metricKinds[slotId];
-    const occupiedSlot = metricSlotIds.find((candidate) => candidate !== slotId && metricKinds[candidate] === nextKind);
-    const nextMetricKinds = { ...metricKinds, [slotId]: nextKind };
-    if (occupiedSlot) nextMetricKinds[occupiedSlot] = previousKind;
-    patchSettings({ metricKinds: nextMetricKinds });
-  }
 
   return (
     <main className={`page editor-page${showPreview ? '' : ' preview-hidden'}`}>
@@ -524,12 +641,17 @@ function EditorPage({
       {showPreview && <section className="panel editor-preview-panel">
         <div className="preview-card-heading">
           <h2>視聴者表示プレビュー</h2>
-          <span>OBSに表示される画面</span>
+          <span>{section === 'message'
+            ? `${messageLabels[interfaceLanguage][messageEditorKey]}の表示を確認中（プレビューのみ）`
+            : 'OBSに表示される画面'}</span>
         </div>
-        <div className={`preview-canvas editor-canvas preview-${state.settings.layout}`}>
+        <div
+          className={`preview-canvas editor-canvas preview-${state.settings.layout}`}
+          style={{ '--board-preview-height': `${previewSize.height}px` } as React.CSSProperties}
+        >
           <Board
             state={state}
-            session={session}
+            session={previewSession}
             now={now}
           />
         </div>
@@ -543,69 +665,64 @@ function EditorPage({
         </div>
 
         {section === 'widget' && (
-          <div className="inspector-content">
+          <div className="inspector-content widget-inspector-content">
             <div className="inspector-page-heading">
               <h2>表示内容</h2>
               <p>視聴者に見せる情報を選びます</p>
             </div>
-            <section className="settings-section" aria-label="基本表示">
-              <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
+            <section className="settings-section" aria-label="メイン表示">
+              <div className="settings-section-heading"><strong>メイン表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
-                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id) && (widget.id !== 'offstream' || state.settings.offstreamEnabled)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
+                {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message'].includes(widget.id)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <div key={widget.id}>
                     <span>{widgetLabels[interfaceLanguage][widget.id]}</span>
                     <VisibilityButton
                       label={widgetLabels[interfaceLanguage][widget.id]}
                       visible={widget.visible}
-                      onToggle={() => {
-                        patchState((current) => ({
-                          ...current,
-                          settings: {
-                            ...current.settings,
-                            widgets: current.settings.widgets.map((item) => item.id === widget.id ? { ...item, visible: !widget.visible } : item),
-                          },
-                        }));
-                      }}
+                      onToggle={() => setWidgetVisible(widget.id, !widget.visible)}
                     />
                   </div>
                 ))}
               </div>
             </section>
             <section className="settings-section">
-              <div className="settings-section-heading"><strong>集計表示</strong><span>最大3件。同じ内容を選ぶと枠が入れ替わります</span></div>
+              <div className="settings-section-heading settings-section-heading-with-action">
+                <div className="settings-section-heading-copy"><strong>学習時間</strong><span>表示する期間を選びます</span></div>
+                <VisibilityButton
+                  label="すべての学習時間"
+                  visible={anyMetricVisible}
+                  onToggle={() => {
+                    const visible = !anyMetricVisible;
+                    patchState((current) => ({
+                      ...current,
+                      settings: {
+                        ...current.settings,
+                        widgets: current.settings.widgets.map((item) =>
+                          timeMetricSlotIds.includes(item.id as MetricWidgetId) ? { ...item, visible } : item
+                        ),
+                      },
+                    }));
+                  }}
+                />
+              </div>
               <div className="metric-slot-list">
-                {metricSlotIds.map((slotId, index) => {
+                {timeMetricKinds.map((kind) => {
+                  const slotId = metricSlotIds.find((candidate) => metricKinds[candidate] === kind)!;
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
-                    <div className="metric-slot-row" key={slotId}>
-                      <span>枠 {index + 1}</span>
-                      <select
-                        aria-label={`下段${index + 1}の内容`}
-                        value={metricKinds[slotId]}
-                        onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
-                      >
-                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[interfaceLanguage][kind]}</option>)}
-                      </select>
+                    <div className="metric-slot-row" key={kind}>
+                      <span>{metricLabels[interfaceLanguage][kind]}</span>
                       <VisibilityButton
-                        label={`枠 ${index + 1}`}
+                        label={metricLabels[interfaceLanguage][kind]}
                         visible={widget?.visible ?? true}
-                        onToggle={() => {
-                          const visible = !(widget?.visible ?? true);
-                          patchState((current) => ({
-                            ...current,
-                            settings: {
-                              ...current.settings,
-                              widgets: current.settings.widgets.map((item) => item.id === slotId ? { ...item, visible } : item),
-                            },
-                          }));
-                        }}
+                        onToggle={() => setWidgetVisible(slotId, !(widget?.visible ?? true))}
                       />
                     </div>
                   );
                 })}
               </div>
               <label className="metric-seconds-option">
-                <span><strong>集計時間を秒まで表示</strong><small>秒は小さく分けて表示します</small></span>
+                <span><strong>秒まで表示</strong><small>時間・分と分けて表示します</small></span>
                 <input
                   type="checkbox"
                   checked={state.settings.showMetricSeconds ?? false}
@@ -613,12 +730,39 @@ function EditorPage({
                 />
               </label>
             </section>
-            <details className="settings-section streak-manager">
-              <summary><span><strong>その他の項目</strong><small>日数や回数などを管理</small></span><span aria-hidden="true">開く</span></summary>
-              <StreakEditor state={state} patchState={patchState} />
-            </details>
-            <section className="settings-section">
-              <div className="settings-section-heading"><strong>配信表示の言語</strong><span>ラベルと時間表記が変わります</span></div>
+            <section className="settings-section additional-display-section">
+              <div className="settings-section-heading"><strong>追加表示</strong><span>必要な情報だけ追加します</span></div>
+              <div className="additional-display-list">
+                <div className="additional-display-item additional-display-row offstream-display-item">
+                  <span><strong>配信外の学習</strong><small>ホームから追加し、学習時間に反映</small></span>
+                  <div className="additional-feature-actions">
+                    <span className="additional-visibility-control">
+                      <span>ボード</span>
+                      <VisibilityButton
+                        label="配信外の学習"
+                        visible={widgetIsVisible('offstream')}
+                        onToggle={() => setWidgetVisible('offstream', !widgetIsVisible('offstream'))}
+                      />
+                    </span>
+                    <label className="compact-toggle-label">使う<input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} /></label>
+                  </div>
+                </div>
+                <div className="additional-display-item additional-display-row">
+                  <span><strong>その他の項目</strong><small>日数や回数などの記録</small></span>
+                  <VisibilityButton
+                    label="その他の項目"
+                    visible={widgetIsVisible(streakMetricSlotId)}
+                    onToggle={() => setWidgetVisible(streakMetricSlotId, !widgetIsVisible(streakMetricSlotId))}
+                  />
+                </div>
+              </div>
+              <details className="streak-manager additional-streak-manager">
+                <summary><span><strong>項目を管理</strong><small>追加・編集・削除</small></span><span aria-hidden="true">開く</span></summary>
+                <StreakEditor state={state} patchState={patchState} />
+              </details>
+            </section>
+            <section className="settings-section language-settings-section">
+              <div className="settings-section-heading"><strong>表示言語</strong><span>視聴者向けのラベルと時間表記</span></div>
               <select
                 className="language-select"
                 aria-label="配信表示の言語"
@@ -628,12 +772,6 @@ function EditorPage({
                 <option value="ja">日本語</option>
                 <option value="en">English</option>
               </select>
-            </section>
-            <section className="settings-section">
-              <label className="feature-toggle-row">
-                <span><strong>配信外の学習を使う</strong><small>ホームに時間入力を表示し、今日・各期間の集計に反映します</small></span>
-                <input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} />
-              </label>
             </section>
           </div>
         )}
@@ -660,10 +798,10 @@ function EditorPage({
             <div className="message-editor-box">
               <textarea
                 rows={4}
-                maxLength={220}
+                maxLength={MESSAGE_MAX_LENGTH}
                 aria-label={`${messageLabels[interfaceLanguage][messageEditorKey]}の表示文`}
                 value={state.settings.messages[messageEditorKey]}
-                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: event.target.value } })}
+                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: normalizeViewerCopy(event.target.value, MESSAGE_MAX_LENGTH) } })}
               />
               <div className="message-editor-footer">
                 <select
@@ -677,21 +815,28 @@ function EditorPage({
                   <option value="">定型文から選ぶ…</option>
                   {messageTemplates[viewerLanguage][messageEditorKey].map((template) => <option key={template} value={template}>{template}</option>)}
                 </select>
-                <small>{state.settings.messages[messageEditorKey].length}/220文字</small>
+                <small>{state.settings.messages[messageEditorKey].length}/{MESSAGE_MAX_LENGTH}文字</small>
               </div>
             </div>
             <section className="settings-section persistent-note-section">
-              <div className="settings-section-heading"><strong>常時表示する注記</strong><span>状態に関係なく表示します。空欄なら表示されません</span></div>
+              <div className="settings-section-heading settings-section-heading-with-action">
+                <div className="settings-section-heading-copy"><strong>常時表示する注記</strong><span>状態に関係なく表示します。空欄なら表示されません</span></div>
+                <VisibilityButton
+                  label="常時表示する注記"
+                  visible={widgetIsVisible('note')}
+                  onToggle={() => setWidgetVisible('note', !widgetIsVisible('note'))}
+                />
+              </div>
               <textarea
                 className="persistent-note-input"
                 rows={3}
-                maxLength={180}
+                maxLength={NOTE_MAX_LENGTH}
                 aria-label="常時表示する注記"
                 placeholder="例：資格試験まであと30日"
                 value={state.settings.note ?? ''}
-                onChange={(event) => patchSettings({ note: event.target.value })}
+                onChange={(event) => patchSettings({ note: normalizeViewerCopy(event.target.value, NOTE_MAX_LENGTH) })}
               />
-              <small className="character-count">{(state.settings.note ?? '').length}/180文字</small>
+              <small className="character-count">{(state.settings.note ?? '').length}/{NOTE_MAX_LENGTH}文字</small>
             </section>
           </div>
         )}
@@ -713,6 +858,27 @@ function EditorPage({
                   <span className="layout-option-preview vertical" aria-hidden="true" />
                   <span>縦長</span>
                 </button>
+              </div>
+            </section>
+            <section className="settings-section appearance-font-section">
+              <div className="settings-section-heading"><strong>フォント</strong><span>タイマーと集計数字を中心に、ボード全体の書体を選びます</span></div>
+              <div className="font-options" role="group" aria-label="視聴者表示のフォント">
+                {([
+                  ['sans', '標準', '読みやすい定番'],
+                  ['system', '端末標準', 'OSになじむ'],
+                  ['modern', 'モダン', '数字がすっきり'],
+                ] as const).map(([font, label, description]) => (
+                  <button
+                    type="button"
+                    key={font}
+                    className={`${resolveBoardFont(state.settings.boardFont) === font ? 'active ' : ''}font-option-${font}`}
+                    aria-pressed={resolveBoardFont(state.settings.boardFont) === font}
+                    onClick={() => patchSettings({ boardFont: font })}
+                  >
+                    <span className="font-option-sample" aria-hidden="true">25:00</span>
+                    <span><strong>{label}</strong><small>{description}</small></span>
+                  </button>
+                ))}
               </div>
             </section>
             <section className="settings-section appearance-color-section">
@@ -743,15 +909,17 @@ function EditorPage({
                   <output>{Math.round((state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY) * 100)}%</output>
                 </div>
               </div>
-              <div className="color-accessibility-footer">
+              <div className="color-accessibility-row">
                 <p>
                   <strong>補助文字のコントラスト <span className={secondaryContrastLevel === 'AA未満' ? 'contrast-warning' : ''}>{secondaryContrast.toFixed(1)}:1・{secondaryContrastLevel}</span></strong>
                   <span>黒・白の映像上で低い方の目安です。小さい文字は4.5:1以上、できれば7:1以上を推奨します。</span>
                 </p>
+              </div>
+              <div className="color-reset-row">
                 <button
                   type="button"
                   onClick={() => patchSettings({ ...DEFAULT_BOARD_APPEARANCE })}
-                >色と透過を初期設定に戻す</button>
+                >初期設定に戻す</button>
               </div>
             </section>
           </div>
@@ -831,34 +999,34 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
   return (
     <div className="streak-editor">
       <div className="streak-editor-heading">
-        <div><strong>登録した項目</strong><small>集計表示で「その他の項目」を選んだ枠に表示されます。複数ある場合は6秒ごとに切り替わります</small></div>
+        <div><strong>項目</strong><small>{state.settings.streaks.length}件・日数や回数を登録できます</small></div>
         <button type="button" className="add-streak-button" onClick={addItem}>＋ 追加</button>
       </div>
       {state.settings.streaks.length > 0 ? (
-        <div className="streak-list">
-          {state.settings.streaks.map((item) => (
-            <div key={item.id} className={`streak-list-row${item.id === streak?.id ? ' active' : ''}`}>
-              <button type="button" onClick={() => setSelectedId(item.id)}>
-                <strong>{item.name || '名称未設定'}</strong>
-                <small>{item.kind === 'count' ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}` : '開始日からの日数'}</small>
-              </button>
+        <div className="streak-selector-row">
+          <select aria-label="編集する項目" value={streak?.id ?? ''} onChange={(event) => setSelectedId(event.target.value)}>
+            {state.settings.streaks.map((item) => {
+              const value = item.kind === 'count'
+                ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}`
+                : '継続日数';
+              return <option key={item.id} value={item.id}>{item.name || '名称未設定'}（{value}）</option>;
+            })}
+          </select>
+          {streak && (
+            <span className="streak-visibility-control">
+              <span>表示</span>
               <VisibilityButton
-                label={item.name || '名称未設定'}
-                visible={item.visible}
-                onToggle={() => {
-                  const visible = !item.visible;
-                  patchState((current) => ({
-                    ...current,
-                    settings: { ...current.settings, streaks: current.settings.streaks.map((currentItem) => currentItem.id === item.id ? { ...currentItem, visible } : currentItem) },
-                  }));
-                }}
+                label={streak.name || '名称未設定'}
+                visible={streak.visible}
+                onToggle={() => change({ visible: !streak.visible })}
               />
-            </div>
-          ))}
+            </span>
+          )}
         </div>
       ) : <p className="empty-settings">まだ項目がありません。「追加」から作成できます。</p>}
       {streak && (
         <div className="streak-detail">
+          <div className="streak-detail-heading"><strong>編集</strong><span>{streak.name || '名称未設定'}</span></div>
           <div className="streak-core-fields">
             <label className="compact-field">
               <span>項目名</span>
@@ -937,8 +1105,8 @@ const messageLabels = {
 } as const;
 
 const messageDescriptions = {
-  ja: { study: '学習時間を計測中', paused: '学習タイマーを一時停止中', break: '休憩時間中', idle: 'セッション開始前' },
-  en: { study: 'While study time runs', paused: 'While the timer is paused', break: 'During a break', idle: 'Before the session starts' },
+  ja: { study: '学習時間を計測中', paused: '学習タイマーを一時停止中', break: '休憩時間中', idle: '記録開始前' },
+  en: { study: 'While study time runs', paused: 'While the timer is paused', break: 'During a break', idle: 'Before tracking starts' },
 } as const;
 
 const messageTemplates = {
@@ -956,8 +1124,6 @@ const messageTemplates = {
   },
 } as const;
 
-const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks'];
-const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
 const weekdayOptions = [
   { day: 1, label: '月' }, { day: 2, label: '火' }, { day: 3, label: '水' }, { day: 4, label: '木' },
   { day: 5, label: '金' }, { day: 6, label: '土' }, { day: 0, label: '日' },

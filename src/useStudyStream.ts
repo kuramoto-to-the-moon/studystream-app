@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, intervalDurationSeconds, materializeSession, remainingSeconds, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, intervalDurationSeconds, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveBoardFont, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -32,11 +32,23 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       },
       settings: {
         ...next.settings,
+        studyMinutes: clampIntervalMinutes(next.settings.studyMinutes),
+        breakMinutes: clampIntervalMinutes(next.settings.breakMinutes),
+        studyDurationSeconds: intervalDurationSeconds(next.settings, 'study'),
+        breakDurationSeconds: intervalDurationSeconds(next.settings, 'break'),
         autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
         completionSoundEnabled: next.settings.completionSoundEnabled ?? true,
-        note: next.settings.note ?? '',
+        boardFont: resolveBoardFont(next.settings.boardFont),
+        note: normalizeViewerCopy(next.settings.note ?? '', NOTE_MAX_LENGTH),
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
+        metricKinds: resolveMetricKinds(next.settings.metricKinds),
+        messages: {
+          study: normalizeViewerCopy(next.settings.messages.study, MESSAGE_MAX_LENGTH),
+          paused: normalizeViewerCopy(next.settings.messages.paused, MESSAGE_MAX_LENGTH),
+          break: normalizeViewerCopy(next.settings.messages.break, MESSAGE_MAX_LENGTH),
+          idle: normalizeViewerCopy(next.settings.messages.idle, MESSAGE_MAX_LENGTH),
+        },
         secondaryTextColor: next.settings.secondaryTextColor ?? next.settings.textColor,
         secondaryTextOpacity: shouldUpgradeSecondaryText
           ? DEFAULT_SECONDARY_TEXT_OPACITY
@@ -51,7 +63,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           ...next.settings.widgets,
           ...widgetOrder
             .filter((id) => !next.settings.widgets.some((widget) => widget.id === id))
-            .map((id) => ({ id, visible: true })),
+            .map((id) => ({ id, visible: !['metric4', 'metric5', 'metric6', 'metric7'].includes(id) })),
         ],
         streaks: shouldUpgradeDefaultStreak
           ? next.settings.streaks.map((item) => (
@@ -65,26 +77,20 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           : next.settings.streaks,
       },
     };
-    const session = withDefaults.session.phase === 'break'
-      && !withDefaults.session.tracking
-      && withDefaults.session.phaseEndsAt !== null
-      && withDefaults.session.pausedRemainingSeconds == null
-      ? { ...withDefaults.session, tracking: true }
-      : withDefaults.session;
-    const upgraded = session === withDefaults.session ? withDefaults : { ...withDefaults, session };
+    const session = withDefaults.session;
     const normalized = session.phase === 'study'
       && !session.tracking
       && session.phaseEndsAt !== null
       && session.pausedRemainingSeconds == null
       ? {
-          ...upgraded,
+          ...withDefaults,
           session: {
             ...session,
             phaseEndsAt: null,
             pausedRemainingSeconds: remainingSeconds(session),
           },
         }
-      : upgraded;
+      : withDefaults;
     stateRef.current = normalized;
     setState(normalized);
   }, []);
@@ -189,7 +195,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         session: {
           ...checkpointed,
           phase: nextPhase,
-          tracking: true,
+          tracking: nextPhase === 'study',
           intervalCompleted: false,
           phaseStartedAt: now,
           phaseEndsAt: now + durationSeconds * 1000,
@@ -239,11 +245,11 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         lastCheckpointAt: stamp,
       }));
     },
-    toggleTracking: () => {
+    togglePause: () => {
       prepareEnabledCompletionSound();
       changeSession((session, _current, stamp) => {
         if (session.phase === 'idle' || session.intervalCompleted) return session;
-        if (session.tracking) {
+        if (!phaseTimerPaused(session)) {
           return {
             ...session,
             tracking: false,
@@ -259,7 +265,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         );
         return {
           ...session,
-          tracking: true,
+          tracking: session.phase === 'study',
           intervalCompleted: false,
           phaseEndsAt: stamp + pausedRemaining * 1000,
           pausedRemainingSeconds: null,
@@ -272,7 +278,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       changeSession((session, current, stamp) => ({
         ...session,
         phase: 'break',
-        tracking: true,
+        tracking: false,
         intervalCompleted: false,
         phaseStartedAt: stamp,
         phaseEndsAt: stamp + intervalDurationSeconds(current.settings, 'break') * 1000,
