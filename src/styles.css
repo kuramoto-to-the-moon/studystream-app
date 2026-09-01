@@ -190,7 +190,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   z-index: 40;
   top: calc(100% + 10px);
   right: 0;
-  width: 232px;
+  width: 276px;
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 14px;
@@ -204,12 +204,13 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .theme-options { padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
 .theme-options button { min-height: 31px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 700; cursor: pointer; }
 .theme-options button.active { background: var(--accent); color: var(--accent-foreground); }
-.interval-options { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.interval-options label { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.interval-options label > span:first-child { color: var(--muted); font-size: 8px; font-weight: 700; }
-.interval-options label > span:last-child { height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0 7px; background: var(--field); display: flex; align-items: center; gap: 4px; }
+.interval-options { display: flex; flex-direction: column; gap: 7px; }
+.interval-option { min-width: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 7px; }
+.interval-option > span { color: var(--muted); font-size: 8px; font-weight: 700; }
+.interval-duration-fields { min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.interval-duration-fields label { min-width: 0; height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0 7px; background: var(--field); display: flex; align-items: center; gap: 4px; }
 .interval-options input { width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--ink); font-size: 11px; font-weight: 750; outline: 0; }
-.interval-options small { color: var(--muted); font-size: 8px; }
+.interval-options small { flex: 0 0 auto; color: var(--muted); font-size: 8px; }
 .auto-cycle-option { min-width: 0; margin-top: 3px; padding-top: 8px; display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
 .auto-cycle-option input { flex: 0 0 auto; width: 14px; height: 14px; margin: 1px 0 0; accent-color: var(--accent); }
 .auto-cycle-option > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }

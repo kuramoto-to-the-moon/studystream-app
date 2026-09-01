@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
+import { DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -24,6 +24,8 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       },
       settings: {
         ...next.settings,
+        studyMinutes: clampIntervalMinutes(next.settings.studyMinutes),
+        breakMinutes: clampIntervalMinutes(next.settings.breakMinutes),
         autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
         completionSoundEnabled: next.settings.completionSoundEnabled ?? true,
         note: normalizeViewerCopy(next.settings.note ?? '', NOTE_MAX_LENGTH),

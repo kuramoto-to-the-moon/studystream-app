@@ -8,6 +8,8 @@ export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'tota
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
 export const MESSAGE_MAX_LENGTH = 60;
 export const NOTE_MAX_LENGTH = 80;
+export const MAX_INTERVAL_MINUTES = 24 * 60;
+export const MIN_INTERVAL_MINUTES = 1;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
   backgroundOpacity: 0.72,
@@ -24,6 +26,11 @@ export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream'
 
 export function normalizeViewerCopy(value: string, maxLength: number) {
   return value.replace(/\s+/g, ' ').trimStart().slice(0, maxLength);
+}
+
+export function clampIntervalMinutes(value: number) {
+  const minutes = Number.isFinite(value) ? Math.round(value) : MIN_INTERVAL_MINUTES;
+  return Math.min(MAX_INTERVAL_MINUTES, Math.max(MIN_INTERVAL_MINUTES, minutes));
 }
 
 export interface SessionState {

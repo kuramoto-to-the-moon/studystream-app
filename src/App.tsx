@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricWidgetId, Streak, WidgetId } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MAX_INTERVAL_MINUTES, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -79,6 +79,20 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
     patchState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
   }
 
+  function changeIntervalPart(
+    key: 'studyMinutes' | 'breakMinutes',
+    part: 'hours' | 'minutes',
+    rawValue: string,
+  ) {
+    const current = clampIntervalMinutes(state!.settings[key]);
+    const currentHours = Math.floor(current / 60);
+    const currentMinutes = current % 60;
+    const value = Math.max(0, Number(rawValue) || 0);
+    const nextHours = part === 'hours' ? Math.min(24, value) : currentHours;
+    const nextMinutes = part === 'minutes' ? Math.min(59, value) : currentMinutes;
+    patchSettings({ [key]: clampIntervalMinutes(nextHours * 60 + nextMinutes) });
+  }
+
   function navigate(nextPage: Page) {
     setPage(nextPage);
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -151,16 +165,49 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               </div>
               <p>視聴者表示の色には影響しません</p>
               <div className="app-settings-group">
-                <span>インターバル</span>
+                <span>インターバル（最大24時間）</span>
                 <div className="interval-options">
-                  <label>
-                    <span>学習</span>
-                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.studyMinutes} onChange={(event) => patchSettings({ studyMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
-                  </label>
-                  <label>
-                    <span>休憩</span>
-                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.breakMinutes} onChange={(event) => patchSettings({ breakMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
-                  </label>
+                  {([
+                    ['studyMinutes', '学習'],
+                    ['breakMinutes', '休憩'],
+                  ] as const).map(([key, label]) => {
+                    const interval = clampIntervalMinutes(state.settings[key]);
+                    const hours = Math.floor(interval / 60);
+                    const minutes = interval % 60;
+                    return (
+                      <div className="interval-option" key={key}>
+                        <span>{label}</span>
+                        <div className="interval-duration-fields">
+                          <label>
+                            <input
+                              aria-label={`${label}の時間`}
+                              type="number"
+                              min="0"
+                              max={MAX_INTERVAL_MINUTES / 60}
+                              step="1"
+                              inputMode="numeric"
+                              value={hours}
+                              onChange={(event) => changeIntervalPart(key, 'hours', event.target.value)}
+                            />
+                            <small>時間</small>
+                          </label>
+                          <label>
+                            <input
+                              aria-label={`${label}の分`}
+                              type="number"
+                              min="0"
+                              max={hours === 24 ? 0 : 59}
+                              step="1"
+                              inputMode="numeric"
+                              value={minutes}
+                              onChange={(event) => changeIntervalPart(key, 'minutes', event.target.value)}
+                            />
+                            <small>分</small>
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <label className="auto-cycle-option">
                   <input
