@@ -474,9 +474,9 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   overflow: hidden;
   container-type: inline-size;
 }
-.board-font-sans { font-family: var(--board-font-sans); }
-.board-font-system { font-family: var(--board-font-system); }
-.board-font-serif { font-family: var(--board-font-serif); }
+.board-font-sans { --board-number-font: var(--mono); font-family: var(--board-font-sans); }
+.board-font-system { --board-number-font: var(--board-font-system); font-family: var(--board-font-system); }
+.board-font-serif { --board-number-font: var(--board-font-serif); font-family: var(--board-font-serif); }
 .board-translucent {
   border: 1px solid color-mix(in srgb, var(--board-text) 8%, transparent);
   backdrop-filter: blur(14px);
@@ -551,7 +551,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   display: inline-block;
   max-width: 100%;
   line-height: 1;
-  font-family: var(--mono);
+  font-family: var(--board-number-font, var(--mono));
   letter-spacing: -.02em;
   text-align: left;
   white-space: nowrap;
@@ -591,11 +591,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .board-offstream { min-width: 0; display: flex; flex-direction: row; align-items: baseline; gap: 6px; }
 .board-offstream > span { color: color-mix(in srgb, var(--board-subtext) 49%, transparent); font-size: 10px; font-weight: 400; }
-.board-offstream strong { overflow: hidden; font: 400 11px/1 var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+.board-offstream strong { overflow: hidden; font: 400 11px/1 var(--board-number-font, var(--mono)); text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .board-metric { width: auto; min-width: 0; display: flex; flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 6px; }
 .board-metric strong {
   overflow: hidden;
-  font: 500 11px/1 var(--mono);
+  font: 500 11px/1 var(--board-number-font, var(--mono));
   line-height: 1;
   letter-spacing: 0;
   text-overflow: ellipsis;
@@ -603,7 +603,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
-.board-metric-time { min-width: 0; max-width: 100%; overflow: hidden; display: flex; align-items: baseline; gap: 0; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.board-metric-time { min-width: 0; max-width: 100%; overflow: hidden; display: flex; align-items: baseline; gap: 0; white-space: nowrap; font-family: var(--board-number-font, var(--mono)); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .board-metric.with-seconds .board-metric-time strong { flex: 0 1 auto; font-size: 11px; letter-spacing: 0; }
 .board-metric-time small { flex: 0 0 auto; color: var(--board-subtext); font-size: 9px; font-weight: 500; }
 .board-metric.with-seconds .board-metric-time.is-long strong { font-size: 10px; }
@@ -937,9 +937,9 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .font-options button > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .font-options strong { overflow: hidden; font-size: 9px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
 .font-options small { overflow: hidden; color: var(--muted); font-size: 7px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.font-option-sans .font-option-sample { font-family: var(--board-font-sans); }
-.font-option-system .font-option-sample { font-family: var(--board-font-system); }
-.font-option-serif .font-option-sample { font-family: var(--board-font-serif); }
+.font-option-sans .font-option-sample { font-family: var(--mono); }
+.font-option-system .font-option-sample { font-family: var(--board-font-system); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.font-option-serif .font-option-sample { font-family: var(--board-font-serif); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .color-control-list { max-width: 520px; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); }
 .color-control-row {
   min-height: 48px;

@@ -863,7 +863,7 @@ function EditorPage({
               </div>
             </section>
             <section className="settings-section appearance-font-section">
-              <div className="settings-section-heading"><strong>フォント</strong><span>視聴者表示の文字を選びます。タイマーの数字は等幅のままです</span></div>
+              <div className="settings-section-heading"><strong>フォント</strong><span>タイマーと集計数字を中心に、ボード全体の書体を選びます</span></div>
               <div className="font-options" role="group" aria-label="視聴者表示のフォント">
                 {([
                   ['sans', '標準', '読みやすい定番'],
@@ -877,7 +877,7 @@ function EditorPage({
                     aria-pressed={resolveBoardFont(state.settings.boardFont) === font}
                     onClick={() => patchSettings({ boardFont: font })}
                   >
-                    <span className="font-option-sample" aria-hidden="true">あAa</span>
+                    <span className="font-option-sample" aria-hidden="true">25:00</span>
                     <span><strong>{label}</strong><small>{description}</small></span>
                   </button>
                 ))}
