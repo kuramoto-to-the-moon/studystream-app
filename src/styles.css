@@ -737,6 +737,9 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .settings-section-heading { margin-bottom: 10px; display: flex; flex-direction: column; gap: 3px; }
 .settings-section-heading strong { font-size: 11px; }
 .settings-section-heading span { color: var(--muted); font-size: 8px; line-height: 1.45; }
+.settings-section-heading-with-action { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-section-heading-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.settings-section-heading-with-action > .visibility-button { flex: 0 0 auto; }
 .language-select {
   width: min(100%, 220px);
   height: 34px;

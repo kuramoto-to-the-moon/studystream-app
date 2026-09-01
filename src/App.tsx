@@ -444,6 +444,9 @@ function EditorPage({
   const [widePreview, setWidePreview] = useState(() => window.matchMedia(EDITOR_PREVIEW_QUERY).matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
   const metricKinds = resolveMetricKinds(state.settings.metricKinds);
+  const anyMetricVisible = metricSlotIds.some((slotId) =>
+    state.settings.widgets.find((widget) => widget.id === slotId)?.visible ?? true
+  );
   const currentMessageKey = phaseKey(session);
   const showPreview = widePreview || previewOpen;
   const secondaryContrast = minimumBoardContrast(
@@ -534,7 +537,25 @@ function EditorPage({
               </div>
             </section>
             <section className="settings-section">
-              <div className="settings-section-heading"><strong>集計表示</strong><span>表示したい集計を選びます</span></div>
+              <div className="settings-section-heading settings-section-heading-with-action">
+                <div className="settings-section-heading-copy"><strong>集計表示</strong><span>表示したい集計を選びます</span></div>
+                <VisibilityButton
+                  label="すべての集計表示"
+                  visible={anyMetricVisible}
+                  onToggle={() => {
+                    const visible = !anyMetricVisible;
+                    patchState((current) => ({
+                      ...current,
+                      settings: {
+                        ...current.settings,
+                        widgets: current.settings.widgets.map((item) =>
+                          metricSlotIds.includes(item.id as MetricWidgetId) ? { ...item, visible } : item
+                        ),
+                      },
+                    }));
+                  }}
+                />
+              </div>
               <div className="metric-slot-list">
                 {metricKindIds.map((kind) => {
                   const slotId = metricSlotIds.find((candidate) => metricKinds[candidate] === kind)!;
