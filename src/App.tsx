@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, MetricWidgetId, Streak, WidgetId } from './model';
+import type { AppState, MetricWidgetId, SessionState, Streak, WidgetId } from './model';
 import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MAX_INTERVAL_MINUTES, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
@@ -505,6 +505,66 @@ function ControlPage({
   );
 }
 
+function messagePreviewSession(
+  session: SessionState,
+  messageKey: keyof AppState['settings']['messages'],
+  now: number,
+  settings: Pick<AppState['settings'], 'studyMinutes' | 'breakMinutes'>,
+): SessionState {
+  const studySeconds = clampIntervalMinutes(settings.studyMinutes) * 60;
+  const breakSeconds = clampIntervalMinutes(settings.breakMinutes) * 60;
+
+  if (messageKey === 'study') {
+    return {
+      ...session,
+      phase: 'study',
+      tracking: true,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: now + studySeconds * 1000,
+      pausedRemainingSeconds: null,
+      lastCheckpointAt: now,
+    };
+  }
+
+  if (messageKey === 'paused') {
+    return {
+      ...session,
+      phase: 'study',
+      tracking: false,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: null,
+      pausedRemainingSeconds: studySeconds,
+      lastCheckpointAt: now,
+    };
+  }
+
+  if (messageKey === 'break') {
+    return {
+      ...session,
+      phase: 'break',
+      tracking: false,
+      intervalCompleted: false,
+      phaseStartedAt: now,
+      phaseEndsAt: now + breakSeconds * 1000,
+      pausedRemainingSeconds: null,
+      lastCheckpointAt: now,
+    };
+  }
+
+  return {
+    ...session,
+    phase: 'idle',
+    tracking: false,
+    intervalCompleted: false,
+    phaseStartedAt: null,
+    phaseEndsAt: null,
+    pausedRemainingSeconds: null,
+    lastCheckpointAt: now,
+  };
+}
+
 function EditorPage({
   state,
   session,
@@ -540,7 +600,10 @@ function EditorPage({
     state.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY,
   );
   const secondaryContrastLevel = secondaryContrast >= 7 ? 'AAA' : secondaryContrast >= 4.5 ? 'AA' : 'AA未満';
-  const previewSize = recommendedObsSize(state, session);
+  const previewSession = section === 'message'
+    ? messagePreviewSession(session, messageEditorKey, now, state.settings)
+    : session;
+  const previewSize = recommendedObsSize(state, previewSession);
   const setWidgetVisible = (id: WidgetId, visible: boolean) => {
     patchState((current) => ({
       ...current,
@@ -580,7 +643,9 @@ function EditorPage({
       {showPreview && <section className="panel editor-preview-panel">
         <div className="preview-card-heading">
           <h2>視聴者表示プレビュー</h2>
-          <span>OBSに表示される画面</span>
+          <span>{section === 'message'
+            ? `${messageLabels[interfaceLanguage][messageEditorKey]}の表示を確認中（プレビューのみ）`
+            : 'OBSに表示される画面'}</span>
         </div>
         <div
           className={`preview-canvas editor-canvas preview-${state.settings.layout}`}
@@ -588,7 +653,7 @@ function EditorPage({
         >
           <Board
             state={state}
-            session={session}
+            session={previewSession}
             now={now}
           />
         </div>
