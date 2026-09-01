@@ -610,29 +610,19 @@ function EditorPage({
             <section className="settings-section additional-display-section">
               <div className="settings-section-heading"><strong>追加表示</strong><span>必要な情報だけ追加します</span></div>
               <div className="additional-display-list">
-                <div className="additional-display-item offstream-display-item">
-                  <label className="additional-feature-toggle">
-                    <span><strong>配信外の学習</strong><small>ホームから時間を追加し、学習時間に反映</small></span>
-                    <span className="compact-toggle-label">使う<input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} /></span>
-                  </label>
-                  {state.settings.offstreamEnabled && (
-                    <div className="additional-display-subrow">
-                      <span>ボードに表示</span>
+                <div className="additional-display-item additional-display-row offstream-display-item">
+                  <span><strong>配信外の学習</strong><small>ホームから追加し、学習時間に反映</small></span>
+                  <div className="additional-feature-actions">
+                    <span className="additional-visibility-control">
+                      <span>ボード</span>
                       <VisibilityButton
                         label="配信外の学習"
                         visible={widgetIsVisible('offstream')}
                         onToggle={() => setWidgetVisible('offstream', !widgetIsVisible('offstream'))}
                       />
-                    </div>
-                  )}
-                </div>
-                <div className="additional-display-item additional-display-row">
-                  <span><strong>常時表示する注記</strong><small>文言は「メッセージ」で設定</small></span>
-                  <VisibilityButton
-                    label="常時表示する注記"
-                    visible={widgetIsVisible('note')}
-                    onToggle={() => setWidgetVisible('note', !widgetIsVisible('note'))}
-                  />
+                    </span>
+                    <label className="compact-toggle-label">使う<input type="checkbox" checked={state.settings.offstreamEnabled ?? false} onChange={(event) => patchSettings({ offstreamEnabled: event.target.checked })} /></label>
+                  </div>
                 </div>
                 <div className="additional-display-item additional-display-row">
                   <span><strong>その他の項目</strong><small>日数や回数などの記録</small></span>
@@ -706,7 +696,14 @@ function EditorPage({
               </div>
             </div>
             <section className="settings-section persistent-note-section">
-              <div className="settings-section-heading"><strong>常時表示する注記</strong><span>状態に関係なく表示します。空欄なら表示されません</span></div>
+              <div className="settings-section-heading settings-section-heading-with-action">
+                <div className="settings-section-heading-copy"><strong>常時表示する注記</strong><span>状態に関係なく表示します。空欄なら表示されません</span></div>
+                <VisibilityButton
+                  label="常時表示する注記"
+                  visible={widgetIsVisible('note')}
+                  onToggle={() => setWidgetVisible('note', !widgetIsVisible('note'))}
+                />
+              </div>
               <textarea
                 className="persistent-note-input"
                 rows={3}

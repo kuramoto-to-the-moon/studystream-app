@@ -837,8 +837,7 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .additional-display-list { max-width: 560px; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); }
 .additional-display-item { border-top: 1px solid var(--line); }
 .additional-display-item:first-child { border-top: 0; }
-.additional-display-row,
-.additional-feature-toggle {
+.additional-display-row {
   min-height: 48px;
   padding: 8px 8px 8px 11px;
   display: flex;
@@ -846,25 +845,13 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   justify-content: space-between;
   gap: 12px;
 }
-.additional-display-row > span,
-.additional-feature-toggle > span:first-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.additional-display-row > span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .additional-display-item strong { color: var(--ink); font-size: 11px; line-height: 1.35; }
 .additional-display-item small { color: var(--muted); font-size: 8px; line-height: 1.45; }
-.additional-feature-toggle { cursor: pointer; }
+.additional-feature-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; }
+.additional-visibility-control { color: var(--muted); font-size: 8px; font-weight: 700; display: flex; align-items: center; gap: 2px; }
 .compact-toggle-label { flex: 0 0 auto; color: var(--muted); font-size: 8px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .compact-toggle-label input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
-.additional-display-subrow {
-  min-height: 34px;
-  border-top: 1px solid var(--line);
-  padding: 0 6px 0 22px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 650;
-}
 .additional-streak-manager { margin-top: 8px; }
 .streak-manager { padding: 0; overflow: hidden; }
 .streak-manager summary { min-height: 54px; padding: 0 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--ink); cursor: pointer; list-style: none; }
@@ -1124,16 +1111,19 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .remove-streak-button:hover { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger-hover); }
 
-/* Native selects share one quiet, compact treatment across the editor. */
+/* Keep the native menu, but place the arrow consistently inside the field. */
 .inspector select {
-  appearance: auto;
-  -webkit-appearance: menulist;
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding-right: 10px;
+  padding-right: 30px;
   padding-left: 10px;
   background-color: var(--field);
-  background-image: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%238a8a8a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 7px;
   color: var(--ink);
   font-weight: 650;
   cursor: pointer;
