@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
-import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import type { AppState, MetricWidgetId, Streak } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, phaseKey, phaseLabel, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -292,8 +292,8 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
   const visibleWidgets = state.settings.widgets.filter((widget) => widget.visible
     && (widget.id !== 'note' || note.length > 0)
     && (widget.id !== 'offstream' || offstreamVisible));
-  const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
-  const metricWidgets = visibleWidgets.filter((widget) => ['session', 'today', 'streaks'].includes(widget.id));
+  const metricKinds = resolveMetricKinds(state.settings.metricKinds);
+  const metricWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
   const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks').length;
   const hasExtraItem = metricWidgets.some((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
   const hasSupplement = visibleWidgets.some((widget) => widget.id === 'offstream') || hasExtraItem;
@@ -443,7 +443,7 @@ function EditorPage({
   const [previewOpen, setPreviewOpen] = useState(() => window.localStorage.getItem(EDITOR_PREVIEW_STORAGE_KEY) === 'open');
   const [widePreview, setWidePreview] = useState(() => window.matchMedia(EDITOR_PREVIEW_QUERY).matches);
   const [messageEditorKey, setMessageEditorKey] = useState<keyof AppState['settings']['messages']>(phaseKey(session));
-  const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
+  const metricKinds = resolveMetricKinds(state.settings.metricKinds);
   const currentMessageKey = phaseKey(session);
   const showPreview = widePreview || previewOpen;
   const secondaryContrast = minimumBoardContrast(
@@ -466,14 +466,6 @@ function EditorPage({
   useEffect(() => {
     window.localStorage.setItem(EDITOR_PREVIEW_STORAGE_KEY, previewOpen ? 'open' : 'closed');
   }, [previewOpen]);
-
-  function changeMetricKind(slotId: MetricWidgetId, nextKind: MetricKind) {
-    const previousKind = metricKinds[slotId];
-    const occupiedSlot = metricSlotIds.find((candidate) => candidate !== slotId && metricKinds[candidate] === nextKind);
-    const nextMetricKinds = { ...metricKinds, [slotId]: nextKind };
-    if (occupiedSlot) nextMetricKinds[occupiedSlot] = previousKind;
-    patchSettings({ metricKinds: nextMetricKinds });
-  }
 
   return (
     <main className={`page editor-page${showPreview ? '' : ' preview-hidden'}`}>
@@ -542,14 +534,15 @@ function EditorPage({
               </div>
             </section>
             <section className="settings-section">
-              <div className="settings-section-heading"><strong>集計表示</strong><span>最大3件。同じ内容を選ぶと枠が入れ替わります</span></div>
+              <div className="settings-section-heading"><strong>集計表示</strong><span>表示したい集計を選びます</span></div>
               <div className="metric-slot-list">
-                {metricSlotIds.map((slotId, index) => {
+                {metricKindIds.map((kind) => {
+                  const slotId = metricSlotIds.find((candidate) => metricKinds[candidate] === kind)!;
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
-                    <div className="metric-slot-row" key={slotId}>
+                    <div className="metric-slot-row" key={kind}>
                       <VisibilityButton
-                        label={`枠 ${index + 1}`}
+                        label={metricLabels[interfaceLanguage][kind]}
                         visible={widget?.visible ?? true}
                         onToggle={() => {
                           const visible = !(widget?.visible ?? true);
@@ -562,14 +555,7 @@ function EditorPage({
                           }));
                         }}
                       />
-                      <span>枠 {index + 1}</span>
-                      <select
-                        aria-label={`下段${index + 1}の内容`}
-                        value={metricKinds[slotId]}
-                        onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
-                      >
-                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[interfaceLanguage][kind]}</option>)}
-                      </select>
+                      <span>{metricLabels[interfaceLanguage][kind]}</span>
                     </div>
                   );
                 })}
@@ -926,8 +912,6 @@ const messageTemplates = {
   },
 } as const;
 
-const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks'];
-const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
 const weekdayOptions = [
   { day: 1, label: '月' }, { day: 2, label: '火' }, { day: 3, label: '水' }, { day: 4, label: '木' },
   { day: 5, label: '金' }, { day: 6, label: '土' }, { day: 0, label: '日' },

@@ -49,7 +49,10 @@ const initialState = {
     showMetricSeconds: false,
     note: '',
     offstreamEnabled: false,
-    metricKinds: { session: 'session', today: 'today', streaks: 'streaks' },
+    metricKinds: {
+      session: 'session', today: 'today', streaks: 'streaks',
+      metric4: 'week', metric5: 'month', metric6: 'year', metric7: 'total',
+    },
     messages: {
       study: '集中しています。コメントは休憩中に読みます。',
       paused: '少し会話しています。学習タイマーは一時停止中です。',
@@ -65,6 +68,10 @@ const initialState = {
       { id: 'session', visible: true },
       { id: 'today', visible: true },
       { id: 'streaks', visible: true },
+      { id: 'metric4', visible: false },
+      { id: 'metric5', visible: false },
+      { id: 'metric6', visible: false },
+      { id: 'metric7', visible: false },
     ],
     streaks: [
       { id: 'workout', name: '筋トレ', kind: 'count', count: 0, unit: '回', visible: true },

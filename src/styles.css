@@ -798,22 +798,12 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   border-top: 1px solid var(--line);
   padding: 6px 9px;
   display: grid;
-  grid-template-columns: auto 42px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
 .metric-slot-row:first-child { border-top: 0; }
-.metric-slot-row > span { color: var(--muted); font-size: 10px; font-weight: 700; }
-.metric-slot-row > select {
-  min-width: 0;
-  height: 32px;
-  border: 1px solid var(--line-strong);
-  border-radius: 5px;
-  padding: 0 7px;
-  background: var(--field);
-  color: var(--ink);
-  font-size: 11px;
-}
+.metric-slot-row > span { color: var(--ink); font-size: 12px; font-weight: 600; }
 .metric-seconds-option {
   max-width: 560px;
   min-height: 34px;

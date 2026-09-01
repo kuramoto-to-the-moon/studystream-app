@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, widgetOrder } from './model';
+import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -29,6 +29,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         note: next.settings.note ?? '',
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
+        metricKinds: resolveMetricKinds(next.settings.metricKinds),
         secondaryTextColor: next.settings.secondaryTextColor ?? next.settings.textColor,
         secondaryTextOpacity: shouldUpgradeSecondaryText
           ? DEFAULT_SECONDARY_TEXT_OPACITY
@@ -39,7 +40,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           ...next.settings.widgets,
           ...widgetOrder
             .filter((id) => !next.settings.widgets.some((widget) => widget.id === id))
-            .map((id) => ({ id, visible: true })),
+            .map((id) => ({ id, visible: !['metric4', 'metric5', 'metric6', 'metric7'].includes(id) })),
         ],
         streaks: shouldUpgradeDefaultStreak
           ? next.settings.streaks.map((item) => (

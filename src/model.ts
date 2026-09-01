@@ -1,8 +1,8 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
-export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks';
-export type MetricWidgetId = 'session' | 'today' | 'streaks';
+export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
+export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
@@ -16,7 +16,9 @@ export const DEFAULT_BOARD_APPEARANCE = {
   secondaryTextDefaultVersion: 2,
 } as const;
 
-export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', 'session', 'today', 'streaks'];
+export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
+export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
+export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
 
 export interface SessionState {
   phase: Phase;
@@ -69,7 +71,7 @@ export interface Settings {
   showMetricSeconds?: boolean;
   note?: string;
   offstreamEnabled?: boolean;
-  metricKinds?: Record<MetricWidgetId, MetricKind>;
+  metricKinds?: Partial<Record<MetricWidgetId, MetricKind>>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
   streaks: Streak[];
@@ -91,6 +93,10 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     session: '今回の学習時間',
     today: '今日',
     streaks: 'その他の項目',
+    metric4: '集計表示',
+    metric5: '集計表示',
+    metric6: '集計表示',
+    metric7: '集計表示',
   },
   en: {
     state: 'Status',
@@ -101,6 +107,10 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     session: 'Session time',
     today: 'Today',
     streaks: 'Streak',
+    metric4: 'Metric',
+    metric5: 'Metric',
+    metric6: 'Metric',
+    metric7: 'Metric',
   },
 };
 
@@ -160,7 +170,28 @@ export const defaultMetricKinds: Record<MetricWidgetId, MetricKind> = {
   session: 'session',
   today: 'today',
   streaks: 'streaks',
+  metric4: 'week',
+  metric5: 'month',
+  metric6: 'year',
+  metric7: 'total',
 };
+
+export function resolveMetricKinds(saved?: Partial<Record<MetricWidgetId, MetricKind>>): Record<MetricWidgetId, MetricKind> {
+  const preferred = { ...defaultMetricKinds, ...saved };
+  const used = new Set<MetricKind>();
+  const resolved = {} as Record<MetricWidgetId, MetricKind>;
+
+  metricSlotIds.forEach((slotId) => {
+    const preferredKind = preferred[slotId];
+    const kind = preferredKind && !used.has(preferredKind)
+      ? preferredKind
+      : metricKindIds.find((candidate) => !used.has(candidate))!;
+    resolved[slotId] = kind;
+    used.add(kind);
+  });
+
+  return resolved;
+}
 
 export function phaseKey(session: SessionState) {
   if (session.phase === 'study' && !session.tracking) return 'paused' as const;

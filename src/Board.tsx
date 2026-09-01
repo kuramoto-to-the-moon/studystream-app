@@ -1,14 +1,15 @@
 import type { CSSProperties } from 'react';
-import type { AppState, MetricKind, SessionState, WidgetId } from './model';
+import type { AppState, MetricKind, MetricWidgetId, SessionState, WidgetId } from './model';
 import {
-  defaultMetricKinds,
   DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
   metricLabels,
+  metricSlotIds,
   metricSeconds,
   phaseKey,
   phaseLabel,
   remainingSeconds,
+  resolveMetricKinds,
   streakDays,
   uiCopy,
   widgetOrder,
@@ -53,7 +54,7 @@ export function Board({
       && (widget.id !== 'note' || note.length > 0)
       && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0)))
     .sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id));
-  const metricKinds = { ...defaultMetricKinds, ...settings.metricKinds };
+  const metricKinds = resolveMetricKinds(settings.metricKinds);
   const clock = formatClock(remaining);
   const clockSecondsStart = clock.lastIndexOf(':');
   const clockMain = clock.slice(0, clockSecondsStart);
@@ -120,6 +121,10 @@ export function Board({
     session: metricContent(metricKinds.session),
     today: metricContent(metricKinds.today),
     streaks: metricContent(metricKinds.streaks),
+    metric4: metricContent(metricKinds.metric4),
+    metric5: metricContent(metricKinds.metric5),
+    metric6: metricContent(metricKinds.metric6),
+    metric7: metricContent(metricKinds.metric7),
   };
 
   const renderWidget = (widget: (typeof visibleWidgets)[number]) => (
@@ -133,9 +138,9 @@ export function Board({
   );
 
   const mainWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer' || widget.id === 'message');
-  const metricSlotWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
-  const metricWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks');
-  const extraWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
+  const metricSlotWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
+  const metricWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] !== 'streaks');
+  const extraWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] === 'streaks');
   const supplementWidgets = [
     ...visibleWidgets.filter((widget) => widget.id === 'offstream'),
     ...extraWidgets,
