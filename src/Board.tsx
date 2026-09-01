@@ -3,6 +3,7 @@ import type { AppState, MetricKind, MetricWidgetId, SessionState, WidgetId } fro
 import {
   DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
+  metricKindIds,
   metricLabels,
   metricSlotIds,
   metricSeconds,
@@ -90,7 +91,7 @@ export function Board({
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
-      <span>{kind === 'session' ? (language === 'ja' ? '今回' : 'Session') : metricLabels[language][kind]}</span>
+      <span>{kind === 'session' ? (language === 'ja' ? 'セッション' : 'Session') : metricLabels[language][kind]}</span>
       {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
@@ -138,7 +139,12 @@ export function Board({
   );
 
   const mainWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer' || widget.id === 'message');
-  const metricSlotWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
+  const metricSlotWidgets = visibleWidgets
+    .filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId))
+    .sort((left, right) => (
+      metricKindIds.indexOf(metricKinds[left.id as MetricWidgetId])
+      - metricKindIds.indexOf(metricKinds[right.id as MetricWidgetId])
+    ));
   const metricWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] !== 'streaks');
   const extraWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] === 'streaks');
   const supplementWidgets = [

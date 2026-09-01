@@ -90,7 +90,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     message: 'メッセージ',
     offstream: '今日の配信外学習',
     note: '常時表示する注記',
-    session: '今回の学習時間',
+    session: '現在のセッション',
     today: '今日',
     streaks: 'その他の項目',
     metric4: '集計表示',
@@ -123,7 +123,7 @@ export const uiCopy = {
     tracking: '学習時間を計測中',
     notTracking: '学習タイマーは一時停止中',
     remaining: '残り時間',
-    session: '今回の学習時間',
+    session: '現在のセッション',
     today: '今日',
     total: '累計',
     days: '日',
@@ -147,7 +147,7 @@ export const uiCopy = {
 
 export const metricLabels: Record<Language, Record<MetricKind, string>> = {
   ja: {
-    session: '今回の学習時間',
+    session: '現在のセッション',
     today: '今日',
     week: '今週',
     month: '今月',
