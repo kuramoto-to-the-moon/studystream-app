@@ -91,7 +91,7 @@ export function Board({
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
-      <span>{kind === 'session' ? (language === 'ja' ? 'セッション' : 'Session') : metricLabels[language][kind]}</span>
+      <span>{kind === 'session' ? (language === 'ja' ? 'この配信' : 'This stream') : metricLabels[language][kind]}</span>
       {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
