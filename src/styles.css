@@ -1063,7 +1063,11 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 }
 .streak-list-row > button:not(.visibility-button) strong { max-width: 100%; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .streak-list-row > button:not(.visibility-button) small { color: var(--muted); font-size: 9px; }
-.streak-detail { margin-top: 14px; padding-top: 6px; }
+.streak-rotation-note { margin: 8px 1px 0; color: var(--muted); font-size: 8px; line-height: 1.45; }
+.streak-detail { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.streak-detail-heading { margin-bottom: 9px; display: flex; align-items: baseline; gap: 7px; }
+.streak-detail-heading strong { color: var(--ink); font-size: 10px; }
+.streak-detail-heading span { min-width: 0; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .streak-core-fields { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(96px, 1fr); gap: 8px; }
 .streak-day-fields, .count-fields { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .compact-field { min-width: 0; display: flex; flex-direction: column; gap: 5px; }

@@ -824,6 +824,7 @@ function relativeLuminance(rgb: [number, number, number]) {
 function StreakEditor({ state, patchState }: { state: AppState; patchState: (mutator: (draft: AppState) => AppState) => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(state.settings.streaks[0]?.id ?? null);
   const streak = state.settings.streaks.find((item) => item.id === selectedId) ?? state.settings.streaks[0];
+  const visibleItemCount = state.settings.streaks.filter((item) => item.visible).length;
   const change = (changes: Partial<Streak>) => {
     if (!streak) return;
     patchState((current) => ({
@@ -853,14 +854,14 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
   return (
     <div className="streak-editor">
       <div className="streak-editor-heading">
-        <div><strong>登録した項目</strong><small>集計表示で「その他の項目」を選んだ枠に表示されます。複数ある場合は6秒ごとに切り替わります</small></div>
+        <div><strong>項目</strong><small>{state.settings.streaks.length}件・日数や回数を登録できます</small></div>
         <button type="button" className="add-streak-button" onClick={addItem}>＋ 追加</button>
       </div>
       {state.settings.streaks.length > 0 ? (
         <div className="streak-list">
           {state.settings.streaks.map((item) => (
             <div key={item.id} className={`streak-list-row${item.id === streak?.id ? ' active' : ''}`}>
-              <button type="button" onClick={() => setSelectedId(item.id)}>
+              <button type="button" aria-pressed={item.id === streak?.id} onClick={() => setSelectedId(item.id)}>
                 <strong>{item.name || '名称未設定'}</strong>
                 <small>{item.kind === 'count' ? `${Math.max(0, Math.floor(item.count ?? 0))}${item.unit || '回'}` : '開始日からの日数'}</small>
               </button>
@@ -879,8 +880,10 @@ function StreakEditor({ state, patchState }: { state: AppState; patchState: (mut
           ))}
         </div>
       ) : <p className="empty-settings">まだ項目がありません。「追加」から作成できます。</p>}
+      {visibleItemCount > 1 && <p className="streak-rotation-note">ボードでは表示中の{visibleItemCount}項目を6秒ごとに切り替えます</p>}
       {streak && (
         <div className="streak-detail">
+          <div className="streak-detail-heading"><strong>編集</strong><span>{streak.name || '名称未設定'}</span></div>
           <div className="streak-core-fields">
             <label className="compact-field">
               <span>項目名</span>
