@@ -13,12 +13,15 @@ use serde_json::{json, Value};
 use std::{
     convert::Infallible,
     fs, io,
-    io::Write,
     net::TcpListener,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     sync::Arc,
     thread,
+};
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use std::{
+    io::Write,
+    process::{Command, Stdio},
 };
 use tokio::sync::{broadcast, RwLock};
 
@@ -83,9 +86,9 @@ pub fn start(data_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 async fn enforce_local_host(request: Request, next: Next) -> Response {
     let allowed = is_allowed_host(
         request
-        .headers()
-        .get(header::HOST)
-        .and_then(|value| value.to_str().ok())
+            .headers()
+            .get(header::HOST)
+            .and_then(|value| value.to_str().ok()),
     );
 
     if !allowed {
@@ -128,10 +131,7 @@ async fn put_state(
         .get("updatedAt")
         .and_then(Value::as_u64)
         .unwrap_or(0);
-    let incoming_updated_at = next
-        .get("updatedAt")
-        .and_then(Value::as_u64)
-        .unwrap_or(0);
+    let incoming_updated_at = next.get("updatedAt").and_then(Value::as_u64).unwrap_or(0);
     if current_updated_at > 0 && incoming_updated_at <= current_updated_at {
         return Err(StatusCode::CONFLICT);
     }
@@ -181,6 +181,7 @@ async fn copy_obs_size(Json(payload): Json<Value>) -> StatusCode {
     }
 }
 
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn write_clipboard(text: &str) -> io::Result<()> {
     #[cfg(target_os = "macos")]
     let mut child = Command::new("pbcopy").stdin(Stdio::piped()).spawn()?;
@@ -190,9 +191,6 @@ fn write_clipboard(text: &str) -> io::Result<()> {
         .args(["/C", "clip"])
         .stdin(Stdio::piped())
         .spawn()?;
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    return Err(io::Error::new(io::ErrorKind::Unsupported, "unsupported platform"));
 
     child
         .stdin
@@ -205,6 +203,14 @@ fn write_clipboard(text: &str) -> io::Result<()> {
     } else {
         Err(io::Error::other("clipboard command failed"))
     }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn write_clipboard(_text: &str) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "clipboard is only available on macOS and Windows",
+    ))
 }
 
 async fn static_asset(uri: Uri) -> Response {

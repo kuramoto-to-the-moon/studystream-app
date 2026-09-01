@@ -21,7 +21,10 @@ fn load_window_size(path: &Path) -> Option<(f64, f64)> {
 }
 
 fn save_window_size(path: &Path, width: f64, height: f64) {
-    let _ = fs::write(path, serde_json::json!({ "width": width, "height": height }).to_string());
+    let _ = fs::write(
+        path,
+        serde_json::json!({ "width": width, "height": height }).to_string(),
+    );
 }
 
 pub fn run() {
