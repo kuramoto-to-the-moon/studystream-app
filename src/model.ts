@@ -1,6 +1,7 @@
 export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
+export type BoardFont = 'sans' | 'system' | 'serif';
 export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
@@ -22,6 +23,7 @@ export const DEFAULT_BOARD_APPEARANCE = {
 
 export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
 export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
+export const boardFontIds: BoardFont[] = ['sans', 'system', 'serif'];
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
 
 export function normalizeViewerCopy(value: string, maxLength: number) {
@@ -31,6 +33,12 @@ export function normalizeViewerCopy(value: string, maxLength: number) {
 export function clampIntervalMinutes(value: number) {
   const minutes = Number.isFinite(value) ? Math.round(value) : MIN_INTERVAL_MINUTES;
   return Math.min(MAX_INTERVAL_MINUTES, Math.max(MIN_INTERVAL_MINUTES, minutes));
+}
+
+export function resolveBoardFont(value: unknown): BoardFont {
+  return typeof value === 'string' && boardFontIds.includes(value as BoardFont)
+    ? value as BoardFont
+    : 'sans';
 }
 
 export interface SessionState {
@@ -73,6 +81,7 @@ export interface Settings {
   completionSoundEnabled?: boolean;
   language: Language;
   layout: Layout;
+  boardFont?: BoardFont;
   background: string;
   backgroundOpacity: number;
   textColor: string;

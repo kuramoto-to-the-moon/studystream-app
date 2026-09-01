@@ -11,6 +11,7 @@ import {
   phaseLabel,
   phaseTimerPaused,
   remainingSeconds,
+  resolveBoardFont,
   resolveMetricKinds,
   streakDays,
   uiCopy,
@@ -163,7 +164,7 @@ export function Board({
 
   return (
     <div
-      className={`board board-${settings.layout} board-lang-${language}${settings.backgroundOpacity > 0 && settings.backgroundOpacity < 1 ? ' board-translucent' : ''}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${auxiliaryRowCount > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${auxiliaryRowCount}` : ''}`}
+      className={`board board-${settings.layout} board-lang-${language} board-font-${resolveBoardFont(settings.boardFont)}${settings.backgroundOpacity > 0 && settings.backgroundOpacity < 1 ? ' board-translucent' : ''}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${auxiliaryRowCount > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${auxiliaryRowCount}` : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >

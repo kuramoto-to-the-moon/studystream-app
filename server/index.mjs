@@ -38,6 +38,7 @@ const initialState = {
     completionSoundEnabled: true,
     language: 'ja',
     layout: 'horizontal',
+    boardFont: 'sans',
     background: '#000000',
     backgroundOpacity: 0.9,
     textColor: '#ffffff',

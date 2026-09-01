@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricWidgetId, SessionState, Streak, WidgetId } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MAX_INTERVAL_MINUTES, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MAX_INTERVAL_MINUTES, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveBoardFont, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -860,6 +860,27 @@ function EditorPage({
                   <span className="layout-option-preview vertical" aria-hidden="true" />
                   <span>縦長</span>
                 </button>
+              </div>
+            </section>
+            <section className="settings-section appearance-font-section">
+              <div className="settings-section-heading"><strong>フォント</strong><span>視聴者表示の文字を選びます。タイマーの数字は等幅のままです</span></div>
+              <div className="font-options" role="group" aria-label="視聴者表示のフォント">
+                {([
+                  ['sans', '標準', '読みやすい定番'],
+                  ['system', '端末標準', 'OSになじむ'],
+                  ['serif', '明朝', '落ち着いた印象'],
+                ] as const).map(([font, label, description]) => (
+                  <button
+                    type="button"
+                    key={font}
+                    className={`${resolveBoardFont(state.settings.boardFont) === font ? 'active ' : ''}font-option-${font}`}
+                    aria-pressed={resolveBoardFont(state.settings.boardFont) === font}
+                    onClick={() => patchSettings({ boardFont: font })}
+                  >
+                    <span className="font-option-sample" aria-hidden="true">あAa</span>
+                    <span><strong>{label}</strong><small>{description}</small></span>
+                  </button>
+                ))}
               </div>
             </section>
             <section className="settings-section appearance-color-section">
