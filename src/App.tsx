@@ -508,13 +508,13 @@ function EditorPage({
         </div>
 
         {section === 'widget' && (
-          <div className="inspector-content">
+          <div className="inspector-content widget-inspector-content">
             <div className="inspector-page-heading">
               <h2>表示内容</h2>
               <p>視聴者に見せる情報を選びます</p>
             </div>
             <section className="settings-section" aria-label="基本表示">
-              <div className="settings-section-heading"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
+              <div className="settings-section-heading settings-section-heading-compact"><strong>基本表示</strong><span>状態・残り時間・メッセージ</span></div>
               <div className="visibility-list">
                 {[...state.settings.widgets].filter((widget) => ['state', 'timer', 'message', 'offstream', 'note'].includes(widget.id) && (widget.id !== 'offstream' || state.settings.offstreamEnabled)).sort((left, right) => widgetOrder.indexOf(left.id) - widgetOrder.indexOf(right.id)).map((widget) => (
                   <div key={widget.id}>
