@@ -105,8 +105,9 @@ export function Board({
   const content: Record<WidgetId, React.ReactNode> = {
     state: (
       <strong className="board-state">
-        <span>{phaseLabel(session, language)}</span>
-        {timerPaused && <small>{language === 'ja' ? '停止中' : 'Paused'}</small>}
+        <span>{timerPaused
+          ? (language === 'ja' ? '停止中' : 'Paused')
+          : phaseLabel(session, language)}</span>
       </strong>
     ),
     timer: (
