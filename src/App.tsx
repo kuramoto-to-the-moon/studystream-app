@@ -355,7 +355,7 @@ function ControlPage({
     <main className="page control-page">
       <header className="page-heading control-page-header">
         <div>
-          <h1>現在のセッション</h1>
+          <h1>学習タイマー</h1>
           <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
         </div>
         <div className="session-page-actions">
@@ -365,7 +365,7 @@ function ControlPage({
           </button>
           {session.phase !== 'idle' && (
             <button type="button" className="session-finish-button" onClick={actions.finish}>
-              セッションを終了
+              記録を終了
             </button>
           )}
         </div>
@@ -924,8 +924,8 @@ const messageLabels = {
 } as const;
 
 const messageDescriptions = {
-  ja: { study: '学習時間を計測中', paused: '学習タイマーを一時停止中', break: '休憩時間中', idle: 'セッション開始前' },
-  en: { study: 'While study time runs', paused: 'While the timer is paused', break: 'During a break', idle: 'Before the session starts' },
+  ja: { study: '学習時間を計測中', paused: '学習タイマーを一時停止中', break: '休憩時間中', idle: '記録開始前' },
+  en: { study: 'While study time runs', paused: 'While the timer is paused', break: 'During a break', idle: 'Before tracking starts' },
 } as const;
 
 const messageTemplates = {
