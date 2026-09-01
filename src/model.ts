@@ -6,6 +6,8 @@ export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metr
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
 
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
+export const MESSAGE_MAX_LENGTH = 60;
+export const NOTE_MAX_LENGTH = 80;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
   backgroundOpacity: 0.72,
@@ -19,6 +21,10 @@ export const DEFAULT_BOARD_APPEARANCE = {
 export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
 export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
+
+export function normalizeViewerCopy(value: string, maxLength: number) {
+  return value.replace(/\s+/g, ' ').trimStart().slice(0, maxLength);
+}
 
 export interface SessionState {
   phase: Phase;

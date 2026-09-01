@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, phaseTimerPaused, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
+import { DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -26,10 +26,16 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         ...next.settings,
         autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
         completionSoundEnabled: next.settings.completionSoundEnabled ?? true,
-        note: next.settings.note ?? '',
+        note: normalizeViewerCopy(next.settings.note ?? '', NOTE_MAX_LENGTH),
         offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
         metricKinds: resolveMetricKinds(next.settings.metricKinds),
+        messages: {
+          study: normalizeViewerCopy(next.settings.messages.study, MESSAGE_MAX_LENGTH),
+          paused: normalizeViewerCopy(next.settings.messages.paused, MESSAGE_MAX_LENGTH),
+          break: normalizeViewerCopy(next.settings.messages.break, MESSAGE_MAX_LENGTH),
+          idle: normalizeViewerCopy(next.settings.messages.idle, MESSAGE_MAX_LENGTH),
+        },
         secondaryTextColor: next.settings.secondaryTextColor ?? next.settings.textColor,
         secondaryTextOpacity: shouldUpgradeSecondaryText
           ? DEFAULT_SECONDARY_TEXT_OPACITY

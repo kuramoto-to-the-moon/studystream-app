@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricWidgetId, Streak, WidgetId } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, formatClock, formatDuration, metricKindIds, metricLabels, metricSlotIds, normalizeViewerCopy, phaseKey, phaseLabel, phaseTimerPaused, remainingSeconds, resolveMetricKinds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -686,10 +686,10 @@ function EditorPage({
             <div className="message-editor-box">
               <textarea
                 rows={4}
-                maxLength={220}
+                maxLength={MESSAGE_MAX_LENGTH}
                 aria-label={`${messageLabels[interfaceLanguage][messageEditorKey]}の表示文`}
                 value={state.settings.messages[messageEditorKey]}
-                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: event.target.value } })}
+                onChange={(event) => patchSettings({ messages: { ...state.settings.messages, [messageEditorKey]: normalizeViewerCopy(event.target.value, MESSAGE_MAX_LENGTH) } })}
               />
               <div className="message-editor-footer">
                 <select
@@ -703,7 +703,7 @@ function EditorPage({
                   <option value="">定型文から選ぶ…</option>
                   {messageTemplates[viewerLanguage][messageEditorKey].map((template) => <option key={template} value={template}>{template}</option>)}
                 </select>
-                <small>{state.settings.messages[messageEditorKey].length}/220文字</small>
+                <small>{state.settings.messages[messageEditorKey].length}/{MESSAGE_MAX_LENGTH}文字</small>
               </div>
             </div>
             <section className="settings-section persistent-note-section">
@@ -718,13 +718,13 @@ function EditorPage({
               <textarea
                 className="persistent-note-input"
                 rows={3}
-                maxLength={180}
+                maxLength={NOTE_MAX_LENGTH}
                 aria-label="常時表示する注記"
                 placeholder="例：資格試験まであと30日"
                 value={state.settings.note ?? ''}
-                onChange={(event) => patchSettings({ note: event.target.value })}
+                onChange={(event) => patchSettings({ note: normalizeViewerCopy(event.target.value, NOTE_MAX_LENGTH) })}
               />
-              <small className="character-count">{(state.settings.note ?? '').length}/180文字</small>
+              <small className="character-count">{(state.settings.note ?? '').length}/{NOTE_MAX_LENGTH}文字</small>
             </section>
           </div>
         )}

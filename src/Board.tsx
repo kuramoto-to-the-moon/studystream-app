@@ -114,14 +114,14 @@ export function Board({
         <span>{copy.remaining}</span>
       </span>
     ),
-    message: <span className="board-message" title={message}>{message}</span>,
+    message: <span className="board-message">{message}</span>,
     offstream: (
       <span className="board-offstream">
         <span>{language === 'ja' ? '配信外' : 'Off-stream'}</span>
         {durationContent(offstreamTodaySeconds)}
       </span>
     ),
-    note: <span className="board-note" title={note}>{note}</span>,
+    note: <span className="board-note">{note}</span>,
     session: metricContent(metricKinds.session),
     today: metricContent(metricKinds.today),
     streaks: metricContent(metricKinds.streaks),
