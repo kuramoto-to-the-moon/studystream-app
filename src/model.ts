@@ -8,12 +8,13 @@ export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'tota
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
-  backgroundOpacity: 0.9,
+  backgroundOpacity: 0.62,
   textColor: '#ffffff',
   textOpacity: 1,
   secondaryTextColor: '#ffffff',
   secondaryTextOpacity: DEFAULT_SECONDARY_TEXT_OPACITY,
   secondaryTextDefaultVersion: 2,
+  boardAppearanceDefaultVersion: 2,
 } as const;
 
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', 'session', 'today', 'streaks'];
@@ -54,6 +55,8 @@ export interface Streak {
 export interface Settings {
   studyMinutes: number;
   breakMinutes: number;
+  studyDurationSeconds?: number;
+  breakDurationSeconds?: number;
   autoCycleEnabled?: boolean;
   completionSoundEnabled?: boolean;
   language: Language;
@@ -65,6 +68,7 @@ export interface Settings {
   secondaryTextColor?: string;
   secondaryTextOpacity?: number;
   secondaryTextDefaultVersion?: number;
+  boardAppearanceDefaultVersion?: number;
   defaultStreakVersion?: number;
   showMetricSeconds?: boolean;
   note?: string;
@@ -163,8 +167,15 @@ export const defaultMetricKinds: Record<MetricWidgetId, MetricKind> = {
 };
 
 export function phaseKey(session: SessionState) {
-  if (session.phase === 'study' && !session.tracking) return 'paused' as const;
+  if ((session.phase === 'study' || session.phase === 'break') && !session.tracking) return 'paused' as const;
   return session.phase;
+}
+
+export function intervalDurationSeconds(settings: Settings, phase: Exclude<Phase, 'idle'>) {
+  const configured = phase === 'study' ? settings.studyDurationSeconds : settings.breakDurationSeconds;
+  if (configured != null && Number.isFinite(configured)) return Math.max(1, Math.floor(configured));
+  const legacyMinutes = phase === 'study' ? settings.studyMinutes : settings.breakMinutes;
+  return Math.max(1, Math.floor(legacyMinutes * 60));
 }
 
 export function phaseLabel(session: SessionState, language: Language) {
@@ -208,7 +219,7 @@ function localDayKey(now: number) {
 }
 
 export function remainingSeconds(session: SessionState, now = Date.now()) {
-  if (session.phase === 'study' && !session.tracking && session.pausedRemainingSeconds != null) {
+  if (session.phase !== 'idle' && !session.tracking && session.pausedRemainingSeconds != null) {
     return Math.max(0, session.pausedRemainingSeconds);
   }
   if (!session.phaseEndsAt) return 0;

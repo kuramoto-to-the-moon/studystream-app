@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
 import type { AppState, SessionState } from './model';
-import { DEFAULT_SECONDARY_TEXT_OPACITY, materializeSession, remainingSeconds, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, intervalDurationSeconds, materializeSession, remainingSeconds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -15,6 +15,14 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const receive = useCallback((next: AppState) => {
     const shouldUpgradeSecondaryText = (next.settings.secondaryTextDefaultVersion ?? 1) < 2
       && (next.settings.secondaryTextOpacity == null || next.settings.secondaryTextOpacity === 0.62);
+    const usesPreviousBoardAppearance = next.settings.background.toLowerCase() === '#000000'
+      && next.settings.backgroundOpacity === 0.9
+      && next.settings.textColor.toLowerCase() === '#ffffff'
+      && (next.settings.textOpacity ?? 1) === 1
+      && (next.settings.secondaryTextColor ?? next.settings.textColor).toLowerCase() === '#ffffff'
+      && (next.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY) === DEFAULT_SECONDARY_TEXT_OPACITY;
+    const shouldUpgradeBoardAppearance = (next.settings.boardAppearanceDefaultVersion ?? 1) < 2
+      && usesPreviousBoardAppearance;
     const shouldUpgradeDefaultStreak = (next.settings.defaultStreakVersion ?? 1) < 2;
     const withDefaults: AppState = {
       ...next,
@@ -34,6 +42,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           ? DEFAULT_SECONDARY_TEXT_OPACITY
           : (next.settings.secondaryTextOpacity ?? DEFAULT_SECONDARY_TEXT_OPACITY),
         secondaryTextDefaultVersion: 2,
+        backgroundOpacity: shouldUpgradeBoardAppearance
+          ? DEFAULT_BOARD_APPEARANCE.backgroundOpacity
+          : next.settings.backgroundOpacity,
+        boardAppearanceDefaultVersion: 2,
         defaultStreakVersion: 2,
         widgets: [
           ...next.settings.widgets,
@@ -53,20 +65,26 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
           : next.settings.streaks,
       },
     };
-    const session = withDefaults.session;
+    const session = withDefaults.session.phase === 'break'
+      && !withDefaults.session.tracking
+      && withDefaults.session.phaseEndsAt !== null
+      && withDefaults.session.pausedRemainingSeconds == null
+      ? { ...withDefaults.session, tracking: true }
+      : withDefaults.session;
+    const upgraded = session === withDefaults.session ? withDefaults : { ...withDefaults, session };
     const normalized = session.phase === 'study'
       && !session.tracking
       && session.phaseEndsAt !== null
       && session.pausedRemainingSeconds == null
       ? {
-          ...withDefaults,
+          ...upgraded,
           session: {
             ...session,
             phaseEndsAt: null,
             pausedRemainingSeconds: remainingSeconds(session),
           },
         }
-      : withDefaults;
+      : upgraded;
     stateRef.current = normalized;
     setState(normalized);
   }, []);
@@ -165,16 +183,16 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         };
       }
       const nextPhase = checkpointed.phase === 'study' ? 'break' : 'study';
-      const minutes = nextPhase === 'study' ? current.settings.studyMinutes : current.settings.breakMinutes;
+      const durationSeconds = intervalDurationSeconds(current.settings, nextPhase);
       return {
         ...current,
         session: {
           ...checkpointed,
           phase: nextPhase,
-          tracking: nextPhase === 'study',
+          tracking: true,
           intervalCompleted: false,
           phaseStartedAt: now,
-          phaseEndsAt: now + minutes * 60_000,
+          phaseEndsAt: now + durationSeconds * 1000,
           pausedRemainingSeconds: null,
           lastCheckpointAt: now,
         },
@@ -184,7 +202,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
 
   useEffect(() => {
     if (readOnly) return;
-    if (!state?.session.tracking) return;
+    if (state?.session.phase !== 'study' || !state.session.tracking) return;
     const elapsed = now - state.session.lastCheckpointAt;
     if (elapsed < 15_000) return;
     update((current) => ({ ...current, session: materializeSession(current.session, now) }));
@@ -216,7 +234,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
         tracking: true,
         intervalCompleted: false,
         phaseStartedAt: stamp,
-        phaseEndsAt: stamp + current.settings.studyMinutes * 60_000,
+        phaseEndsAt: stamp + intervalDurationSeconds(current.settings, 'study') * 1000,
         pausedRemainingSeconds: null,
         lastCheckpointAt: stamp,
       }));
@@ -224,7 +242,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     toggleTracking: () => {
       prepareEnabledCompletionSound();
       changeSession((session, _current, stamp) => {
-        if (session.phase !== 'study') return { ...session, tracking: false };
+        if (session.phase === 'idle' || session.intervalCompleted) return session;
         if (session.tracking) {
           return {
             ...session,
@@ -254,10 +272,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
       changeSession((session, current, stamp) => ({
         ...session,
         phase: 'break',
-        tracking: false,
+        tracking: true,
         intervalCompleted: false,
         phaseStartedAt: stamp,
-        phaseEndsAt: stamp + current.settings.breakMinutes * 60_000,
+        phaseEndsAt: stamp + intervalDurationSeconds(current.settings, 'break') * 1000,
         pausedRemainingSeconds: null,
         lastCheckpointAt: stamp,
       }));

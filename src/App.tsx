@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Board } from './Board';
 import type { AppState, MetricKind, MetricWidgetId, Streak } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, defaultMetricKinds, formatClock, formatDuration, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, defaultMetricKinds, formatClock, formatDuration, intervalDurationSeconds, metricLabels, phaseKey, phaseLabel, remainingSeconds, uiCopy, widgetLabels, widgetOrder } from './model';
 import { useStudyStream } from './useStudyStream';
 
 type Page = 'control' | 'editor';
@@ -28,6 +28,42 @@ export function App() {
   }
 
   return <Dashboard store={store} />;
+}
+
+function DurationInput({ label, seconds, onChange }: { label: string; seconds: number; onChange: (seconds: number) => void }) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remaining = seconds % 60;
+
+  function updatePart(part: 'hours' | 'minutes' | 'seconds', value: string) {
+    const parsed = Math.max(0, Number.parseInt(value, 10) || 0);
+    const nextHours = part === 'hours' ? Math.min(99, parsed) : hours;
+    const nextMinutes = part === 'minutes' ? Math.min(59, parsed) : minutes;
+    const nextSeconds = part === 'seconds' ? Math.min(59, parsed) : remaining;
+    onChange(Math.max(1, nextHours * 3600 + nextMinutes * 60 + nextSeconds));
+  }
+
+  return (
+    <div className="duration-setting">
+      <span>{label}</span>
+      <div className="duration-fields">
+        <label>
+          <input aria-label={`${label}時間`} type="number" min="0" max="99" step="1" inputMode="numeric" value={hours} onChange={(event) => updatePart('hours', event.target.value)} />
+          <small>時</small>
+        </label>
+        <span aria-hidden="true">:</span>
+        <label>
+          <input aria-label={`${label}分`} type="number" min="0" max="59" step="1" inputMode="numeric" value={minutes} onChange={(event) => updatePart('minutes', event.target.value)} />
+          <small>分</small>
+        </label>
+        <span aria-hidden="true">:</span>
+        <label>
+          <input aria-label={`${label}秒`} type="number" min="0" max="59" step="1" inputMode="numeric" value={remaining} onChange={(event) => updatePart('seconds', event.target.value)} />
+          <small>秒</small>
+        </label>
+      </div>
+    </div>
+  );
 }
 
 function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
@@ -77,6 +113,13 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
 
   function patchSettings(changes: Partial<AppState['settings']>) {
     patchState((current) => ({ ...current, settings: { ...current.settings, ...changes } }));
+  }
+
+  function setIntervalDuration(phase: 'study' | 'break', seconds: number) {
+    const safeSeconds = Math.min(359_999, Math.max(1, Math.floor(seconds)));
+    patchSettings(phase === 'study'
+      ? { studyDurationSeconds: safeSeconds, studyMinutes: Math.max(1, Math.ceil(safeSeconds / 60)) }
+      : { breakDurationSeconds: safeSeconds, breakMinutes: Math.max(1, Math.ceil(safeSeconds / 60)) });
   }
 
   function navigate(nextPage: Page) {
@@ -153,14 +196,16 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
               <div className="app-settings-group">
                 <span>インターバル</span>
                 <div className="interval-options">
-                  <label>
-                    <span>学習</span>
-                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.studyMinutes} onChange={(event) => patchSettings({ studyMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
-                  </label>
-                  <label>
-                    <span>休憩</span>
-                    <span><input type="number" min="1" max="180" step="1" inputMode="numeric" value={state.settings.breakMinutes} onChange={(event) => patchSettings({ breakMinutes: Math.min(180, Math.max(1, Number(event.target.value) || 1)) })} /><small>分</small></span>
-                  </label>
+                  <DurationInput
+                    label="学習"
+                    seconds={intervalDurationSeconds(state.settings, 'study')}
+                    onChange={(seconds) => setIntervalDuration('study', seconds)}
+                  />
+                  <DurationInput
+                    label="休憩"
+                    seconds={intervalDurationSeconds(state.settings, 'break')}
+                    onChange={(seconds) => setIntervalDuration('break', seconds)}
+                  />
                 </div>
                 <label className="auto-cycle-option">
                   <input
@@ -179,7 +224,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useStudyStream> }) {
                       patchSettings({ completionSoundEnabled: event.target.checked });
                     }}
                   />
-                  <span><strong>終了音を鳴らす</strong><small>学習と休憩の終了時に短いチャイムを鳴らします</small></span>
+                  <span><strong>終了音を鳴らす</strong><small>学習と休憩の終了時に通知音を鳴らします</small></span>
                 </label>
               </div>
               <p>時間の変更は次に開始する学習・休憩から反映します</p>
@@ -320,17 +365,8 @@ function ControlPage({
     Math.max(0, Number(offstreamHours) || 0) * 60
     + Math.max(0, Number(offstreamMinutes) || 0)
   ) * 60;
-  const usePrimaryAction = () => {
-    if (session.phase === 'study' && !isIntervalCompleted) {
-      actions.toggleTracking();
-      return;
-    }
-    actions.startStudy();
-  };
-  const primaryLabel = session.phase === 'study' && !isIntervalCompleted
-    ? (session.tracking ? '一時停止' : '再開')
-    : '学習を開始';
-  const breakIsRunning = session.phase === 'break' && !isIntervalCompleted;
+  const hasActiveTimer = session.phase !== 'idle' && !isIntervalCompleted;
+  const timerActionLabel = hasActiveTimer && !session.tracking ? '再開' : '一時停止';
   const addOffstreamStudy = (event: React.FormEvent) => {
     event.preventDefault();
     if (!offstreamSeconds) return;
@@ -349,41 +385,59 @@ function ControlPage({
           <p>学習・休憩・一時停止を切り替え、学習時間を記録します</p>
         </div>
         <div className="session-page-actions">
-          <button type="button" className="board-edit-button" onClick={onEditBoard}>
+          <button type="button" className="board-edit-button" aria-label="ボード編集" onClick={onEditBoard}>
             <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="3.5" width="14" height="13" rx="1.5" /><path d="M3 8h14M8 8v8.5" /></svg>
             <span>ボード編集</span>
           </button>
           {session.phase !== 'idle' && (
-            <button type="button" className="session-finish-button" onClick={actions.finish}>
-              セッションを終了
+            <button type="button" className="session-finish-button" aria-label="セッションを終了" onClick={actions.finish}>
+              <span>セッションを終了</span>
             </button>
           )}
         </div>
       </header>
       <section className="panel session-panel">
-        <div className="phase-summary">
-          <div>
-            <div className="phase-label-row">
-              <p className="eyebrow">現在の状態</p>
+        <div className="session-control-column">
+          <div className="phase-summary">
+            <div className="phase-status-line">
+              <i aria-hidden="true" />
+              <h1>{phaseLabel(session, 'ja')}</h1>
             </div>
-            <h1>{phaseLabel(session, 'ja')}</h1>
+            <div className="control-clock">
+              <strong>{formatClock(remainingSeconds(session, now))}</strong>
+              <span>{copy.remaining}</span>
+            </div>
           </div>
-          <div className="control-clock">
-            <strong>{formatClock(remainingSeconds(session, now))}</strong>
-            <span>{copy.remaining}</span>
+
+          <div className="control-actions" aria-label="配信状態">
+            <div className="phase-selector" role="group" aria-label="状態を切り替える">
+              <button
+                type="button"
+                className={session.phase === 'study' ? 'active' : ''}
+                aria-pressed={session.phase === 'study'}
+                disabled={session.phase === 'study'}
+                onClick={actions.startStudy}
+              >
+                学習
+              </button>
+              <button
+                type="button"
+                className={session.phase === 'break' ? 'active' : ''}
+                aria-pressed={session.phase === 'break'}
+                disabled={session.phase === 'idle' || session.phase === 'break'}
+                onClick={actions.startBreak}
+              >
+                休憩
+              </button>
+            </div>
+            <button type="button" className={`button timer-action-button${timerActionLabel === '再開' ? ' is-resume' : ''}`} disabled={!hasActiveTimer} onClick={actions.toggleTracking}>
+              {timerActionLabel}
+            </button>
           </div>
         </div>
 
-        <div className="control-actions" aria-label="配信状態">
-          <button type="button" className={`button${session.phase === 'study' && !isIntervalCompleted ? ' active' : ''}`} onClick={usePrimaryAction}>
-            {primaryLabel}
-          </button>
-          <button type="button" className={`button${breakIsRunning ? ' active' : ''}`} disabled={session.phase === 'idle' || breakIsRunning} onClick={actions.startBreak}>
-            {breakIsRunning ? '休憩中' : '休憩を開始'}
-          </button>
-        </div>
-
-        <div className="session-stats">
+        <div className="session-stats" aria-label="学習時間">
+          <p className="session-stats-heading">学習時間</p>
           <div><strong>{formatDuration(session.sessionSeconds, 'ja')}</strong><span>{copy.session}</span></div>
           <div><strong>{formatDuration(session.todaySeconds, 'ja')}</strong><span>{copy.today}</span></div>
           <div><strong>{formatDuration(session.totalSeconds, 'ja')}</strong><span>{copy.total}</span></div>
@@ -524,6 +578,14 @@ function EditorPage({
                   const widget = state.settings.widgets.find((item) => item.id === slotId);
                   return (
                     <div className="metric-slot-row" key={slotId}>
+                      <span>枠 {index + 1}</span>
+                      <select
+                        aria-label={`下段${index + 1}の内容`}
+                        value={metricKinds[slotId]}
+                        onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
+                      >
+                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[interfaceLanguage][kind]}</option>)}
+                      </select>
                       <VisibilityButton
                         label={`枠 ${index + 1}`}
                         visible={widget?.visible ?? true}
@@ -538,14 +600,6 @@ function EditorPage({
                           }));
                         }}
                       />
-                      <span>枠 {index + 1}</span>
-                      <select
-                        aria-label={`下段${index + 1}の内容`}
-                        value={metricKinds[slotId]}
-                        onChange={(event) => changeMetricKind(slotId, event.target.value as MetricKind)}
-                      >
-                        {metricKindIds.map((kind) => <option key={kind} value={kind}>{metricLabels[interfaceLanguage][kind]}</option>)}
-                      </select>
                     </div>
                   );
                 })}
