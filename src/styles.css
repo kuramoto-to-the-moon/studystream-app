@@ -546,7 +546,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
   opacity: .88;
   content: "";
 }
-.board-state small { color: color-mix(in srgb, var(--board-subtext) 49%, transparent); font: 500 9px/1 var(--mono); letter-spacing: .08em; }
 .board-lang-en .board-state { font-size: 12px; letter-spacing: 0; }
 .board-timer-wrap { width: auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .board-timer {
@@ -649,7 +648,6 @@ h1, h2 { margin: 0; color: var(--ink); letter-spacing: -.03em; }
 .board-vertical .board-note-row .board-widget { width: 100%; }
 .board-vertical .board-state,
 .board-vertical.board-lang-en .board-state { width: 100%; font-size: 12px; }
-.board-vertical .board-state small { margin-left: auto; }
 .board-vertical .board-timer-wrap { align-items: flex-start; }
 .board-vertical .board-timer > span:first-child { font-size: 52px; }
 .board-vertical .board-timer > span:last-child { font-size: 33.6px; }

@@ -210,8 +210,9 @@ export function phaseLabel(session: SessionState, language: Language) {
     if (language === 'en') return session.phase === 'study' ? 'Study finished' : 'Break finished';
     return session.phase === 'study' ? '学習終了' : '休憩終了';
   }
-  if (session.phase === 'break' && phaseTimerPaused(session)) {
-    return language === 'en' ? 'Break paused' : '休憩を一時停止中';
+  if (phaseTimerPaused(session)) {
+    if (language === 'en') return session.phase === 'study' ? 'Studying (paused)' : 'On break (paused)';
+    return session.phase === 'study' ? '学習中（停止中）' : '休憩中（停止中）';
   }
   return uiCopy[language][phaseKey(session)];
 }

@@ -100,7 +100,6 @@ export function Board({
     state: (
       <strong className="board-state">
         <span>{phaseLabel(session, language)}</span>
-        {key === 'paused' && <small>{language === 'ja' ? '[停止]' : '[STOPPED]'}</small>}
       </strong>
     ),
     timer: (
