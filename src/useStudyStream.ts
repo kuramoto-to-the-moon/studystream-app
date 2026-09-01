@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { playCompletionSound, prepareCompletionSound } from './completionSound';
-import type { AppState, SessionState } from './model';
-import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, clampIntervalMinutes, intervalDurationSeconds, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveBoardFont, resolveMetricKinds, widgetOrder } from './model';
+import type { AppState, CompletionSound, SessionState } from './model';
+import { DEFAULT_BOARD_APPEARANCE, DEFAULT_SECONDARY_TEXT_OPACITY, MESSAGE_MAX_LENGTH, NOTE_MAX_LENGTH, intervalDurationSeconds, materializeSession, normalizeViewerCopy, phaseTimerPaused, remainingSeconds, resolveBoardFont, resolveCompletionSound, resolveMetricKinds, widgetOrder } from './model';
 
 type Mutator = (state: AppState) => AppState;
 
@@ -11,8 +11,12 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
   const [connected, setConnected] = useState(false);
   const stateRef = useRef<AppState | null>(null);
   const armedSoundDeadlineRef = useRef<number | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSavesRef = useRef(0);
 
   const receive = useCallback((next: AppState) => {
+    const studyDurationSeconds = intervalDurationSeconds(next.settings, 'study');
+    const breakDurationSeconds = intervalDurationSeconds(next.settings, 'break');
     const shouldUpgradeSecondaryText = (next.settings.secondaryTextDefaultVersion ?? 1) < 2
       && (next.settings.secondaryTextOpacity == null || next.settings.secondaryTextOpacity === 0.62);
     const usesPreviousBoardAppearance = next.settings.background.toLowerCase() === '#000000'
@@ -26,21 +30,22 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     const shouldUpgradeDefaultStreak = (next.settings.defaultStreakVersion ?? 1) < 2;
     const withDefaults: AppState = {
       ...next,
+      updatedAt: next.updatedAt ?? 0,
       session: {
         ...next.session,
         intervalCompleted: next.session.intervalCompleted ?? false,
       },
       settings: {
         ...next.settings,
-        studyMinutes: clampIntervalMinutes(next.settings.studyMinutes),
-        breakMinutes: clampIntervalMinutes(next.settings.breakMinutes),
-        studyDurationSeconds: intervalDurationSeconds(next.settings, 'study'),
-        breakDurationSeconds: intervalDurationSeconds(next.settings, 'break'),
+        studyMinutes: Math.max(1, Math.ceil(studyDurationSeconds / 60)),
+        breakMinutes: Math.max(1, Math.ceil(breakDurationSeconds / 60)),
+        studyDurationSeconds,
+        breakDurationSeconds,
         autoCycleEnabled: next.settings.autoCycleEnabled ?? true,
         completionSoundEnabled: next.settings.completionSoundEnabled ?? true,
+        completionSound: resolveCompletionSound(next.settings.completionSound),
         boardFont: resolveBoardFont(next.settings.boardFont),
         note: normalizeViewerCopy(next.settings.note ?? '', NOTE_MAX_LENGTH),
-        offstreamEnabled: next.settings.offstreamEnabled ?? false,
         showMetricSeconds: next.settings.showMetricSeconds ?? false,
         metricKinds: resolveMetricKinds(next.settings.metricKinds),
         messages: {
@@ -106,28 +111,47 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
 
     const events = new EventSource('/api/events');
     events.onmessage = (event) => {
+      // The control screen already applies its own edits optimistically. Ignore
+      // its older server echoes until the ordered save queue has caught up.
+      if (!readOnly && pendingSavesRef.current > 0) return;
       receive(JSON.parse(event.data) as AppState);
       setConnected(true);
     };
     events.onerror = () => setConnected(false);
     return () => events.close();
-  }, [receive]);
+  }, [readOnly, receive]);
 
   const save = useCallback(
-    async (next: AppState) => {
+    (next: AppState) => {
       receive(next);
-      try {
-        const response = await fetch('/api/state', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(next),
+      pendingSavesRef.current += 1;
+      const task = saveQueueRef.current
+        .then(async () => {
+          try {
+            const response = await fetch('/api/state', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(next),
+            });
+            if (response.status === 409) {
+              const latestResponse = await fetch('/api/state');
+              if (!latestResponse.ok) throw new Error('reload-after-conflict-failed');
+              receive(await latestResponse.json() as AppState);
+              setConnected(true);
+              return;
+            }
+            if (!response.ok) throw new Error('save-failed');
+            setConnected(true);
+          } catch {
+            setConnected(false);
+            localStorage.setItem('studystream:fallback-state', JSON.stringify(next));
+          }
+        })
+        .finally(() => {
+          pendingSavesRef.current = Math.max(0, pendingSavesRef.current - 1);
         });
-        if (!response.ok) throw new Error('save-failed');
-        setConnected(true);
-      } catch {
-        setConnected(false);
-        localStorage.setItem('studystream:fallback-state', JSON.stringify(next));
-      }
+      saveQueueRef.current = task;
+      return task;
     },
     [receive],
   );
@@ -136,7 +160,10 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     (mutator: Mutator) => {
       const current = stateRef.current;
       if (!current) return;
-      void save(mutator(current));
+      const changed = mutator(current);
+      if (changed === current) return;
+      const updatedAt = Math.max(Date.now(), (current.updatedAt ?? 0) + 1);
+      void save({ ...changed, updatedAt });
     },
     [save],
   );
@@ -170,10 +197,17 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     if ((state.settings.completionSoundEnabled ?? true)
       && armedSoundDeadlineRef.current === completedDeadline
       && (state.session.phase === 'study' || state.session.phase === 'break')) {
-      void playCompletionSound(state.session.phase);
+      void playCompletionSound(state.session.phase, resolveCompletionSound(state.settings.completionSound));
     }
     armedSoundDeadlineRef.current = null;
     update((current) => {
+      // This effect may have been scheduled just before the user ended or
+      // changed the timer. Never auto-start from that stale completion event.
+      if (current.session.phase === 'idle'
+        || current.session.phaseEndsAt !== completedDeadline
+        || remainingSeconds(current.session, now) > 0) {
+        return current;
+      }
       const checkpointed = materializeSession(current.session, now);
       if (!(current.settings.autoCycleEnabled ?? true)) {
         return {
@@ -231,6 +265,7 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
 
   const actions = {
     prepareCompletionSound: () => prepareCompletionSound(),
+    previewCompletionSound: (sound: CompletionSound) => playCompletionSound('study', sound),
     startStudy: () => {
       prepareEnabledCompletionSound();
       changeSession((session, current, stamp) => ({
@@ -288,17 +323,21 @@ export function useStudyStream({ readOnly = false }: { readOnly?: boolean } = {}
     },
     addStudyTime: (seconds: number) =>
       changeSession((session) => {
-        const addedSeconds = Math.max(0, Math.floor(seconds));
-        if (!addedSeconds) return session;
+        const requestedSeconds = Math.trunc(seconds);
+        const currentOffstreamSeconds = Math.max(0, session.offstreamTodaySeconds ?? 0);
+        const adjustedSeconds = requestedSeconds >= 0
+          ? requestedSeconds
+          : -Math.min(currentOffstreamSeconds, Math.abs(requestedSeconds));
+        if (!adjustedSeconds) return session;
         const dayKey = session.dayKey;
         return {
           ...session,
-          todaySeconds: session.todaySeconds + addedSeconds,
-          offstreamTodaySeconds: (session.offstreamTodaySeconds ?? 0) + addedSeconds,
-          totalSeconds: session.totalSeconds + addedSeconds,
+          todaySeconds: Math.max(0, session.todaySeconds + adjustedSeconds),
+          offstreamTodaySeconds: Math.max(0, currentOffstreamSeconds + adjustedSeconds),
+          totalSeconds: Math.max(0, session.totalSeconds + adjustedSeconds),
           dailySeconds: {
             ...session.dailySeconds,
-            [dayKey]: (session.dailySeconds?.[dayKey] ?? 0) + addedSeconds,
+            [dayKey]: Math.max(0, (session.dailySeconds?.[dayKey] ?? 0) + adjustedSeconds),
           },
         };
       }),

@@ -8,11 +8,12 @@ function run(command, args) {
 }
 
 const tauriArgs = ['tauri', 'build'];
-if (process.platform === 'darwin') tauriArgs.push('--bundles', 'app');
+if (process.platform === 'darwin') tauriArgs.push('--bundles', 'app,dmg');
 run('npx', tauriArgs);
 
 if (process.platform === 'darwin') {
   const appPath = resolve('src-tauri/target/release/bundle/macos/StudyStream.app');
-  run('codesign', ['--force', '--deep', '--sign', '-', appPath]);
+  const dmgPath = resolve('src-tauri/target/release/bundle/dmg');
   console.log(`Local macOS app: ${appPath}`);
+  console.log(`Local macOS installer directory: ${dmgPath}`);
 }

@@ -1,7 +1,8 @@
 use async_stream::stream;
 use axum::{
-    extract::State,
+    extract::{Request, State},
     http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    middleware::{self, Next},
     response::{sse::Event, IntoResponse, Response, Sse},
     routing::{get, post},
     Json, Router,
@@ -22,6 +23,7 @@ use std::{
 use tokio::sync::{broadcast, RwLock};
 
 const HOST: &str = "127.0.0.1:47831";
+const LOCALHOST: &str = "localhost:47831";
 const OBS_OVERLAY_URL: &str = "http://127.0.0.1:47831/overlay";
 
 #[derive(RustEmbed)]
@@ -67,13 +69,48 @@ pub fn start(data_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                     .route("/api/state", get(get_state).put(put_state))
                     .route("/api/events", get(events))
                     .route("/api/copy-obs-url", post(copy_obs_url))
+                    .route("/api/copy-obs-size", post(copy_obs_size))
                     .fallback(static_asset)
-                    .with_state(state);
+                    .with_state(state)
+                    .layer(middleware::from_fn(enforce_local_host));
                 axum::serve(listener, app).await.expect("run local server");
             });
         })?;
 
     Ok(())
+}
+
+async fn enforce_local_host(request: Request, next: Next) -> Response {
+    let allowed = is_allowed_host(
+        request
+        .headers()
+        .get(header::HOST)
+        .and_then(|value| value.to_str().ok())
+    );
+
+    if !allowed {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+
+    let mut response = next.run(request).await;
+    let headers = response.headers_mut();
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("no-referrer"),
+    );
+    headers.insert(
+        header::HeaderName::from_static("cross-origin-resource-policy"),
+        HeaderValue::from_static("same-origin"),
+    );
+    response
+}
+
+fn is_allowed_host(host: Option<&str>) -> bool {
+    host.is_some_and(|value| value == HOST || value == LOCALHOST)
 }
 
 async fn get_state(State(state): State<ServerState>) -> Json<Value> {
@@ -84,8 +121,23 @@ async fn put_state(
     State(state): State<ServerState>,
     Json(next): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
+    // Serialize disk writes as well as the in-memory update. Concurrent PUTs
+    // must never race through the shared temporary state file.
+    let mut document = state.document.write().await;
+    let current_updated_at = document
+        .get("updatedAt")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let incoming_updated_at = next
+        .get("updatedAt")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    if current_updated_at > 0 && incoming_updated_at <= current_updated_at {
+        return Err(StatusCode::CONFLICT);
+    }
     save_atomic(&state.state_path, &next).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    *state.document.write().await = next.clone();
+    *document = next.clone();
+    drop(document);
     let _ = state.updates.send(next.clone());
     Ok(Json(next))
 }
@@ -110,6 +162,20 @@ async fn events(
 
 async fn copy_obs_url() -> StatusCode {
     match write_clipboard(OBS_OVERLAY_URL) {
+        Ok(()) => StatusCode::NO_CONTENT,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+async fn copy_obs_size(Json(payload): Json<Value>) -> StatusCode {
+    let Some(value) = payload.get("value").and_then(Value::as_u64) else {
+        return StatusCode::BAD_REQUEST;
+    };
+    if value == 0 || value > 100_000 {
+        return StatusCode::BAD_REQUEST;
+    }
+
+    match write_clipboard(&value.to_string()) {
         Ok(()) => StatusCode::NO_CONTENT,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -200,6 +266,7 @@ fn save_atomic(path: &Path, value: &Value) -> io::Result<()> {
 fn default_state() -> Value {
     json!({
         "version": 1,
+        "updatedAt": 0,
         "session": {
             "phase": "idle",
             "tracking": false,
@@ -222,9 +289,11 @@ fn default_state() -> Value {
             "breakDurationSeconds": 600,
             "autoCycleEnabled": true,
             "completionSoundEnabled": true,
+            "completionSound": "chime",
             "language": "ja",
             "layout": "horizontal",
             "boardFont": "sans",
+            "colorPreset": "dark",
             "background": "#000000",
             "backgroundOpacity": 0.62,
             "textColor": "#ffffff",
@@ -236,7 +305,6 @@ fn default_state() -> Value {
             "defaultStreakVersion": 2,
             "showMetricSeconds": false,
             "note": "",
-            "offstreamEnabled": false,
             "metricKinds": {
                 "session": "session", "today": "today", "streaks": "streaks",
                 "metric4": "week", "metric5": "month", "metric6": "year", "metric7": "total"
@@ -266,4 +334,18 @@ fn default_state() -> Value {
             ]
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_allowed_host, HOST, LOCALHOST};
+
+    #[test]
+    fn accepts_only_the_expected_loopback_hosts() {
+        assert!(is_allowed_host(Some(HOST)));
+        assert!(is_allowed_host(Some(LOCALHOST)));
+        assert!(!is_allowed_host(Some("studystream.example:47831")));
+        assert!(!is_allowed_host(Some("127.0.0.1:9999")));
+        assert!(!is_allowed_host(None));
+    }
 }

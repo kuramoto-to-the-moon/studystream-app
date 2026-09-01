@@ -1,0 +1,77 @@
+name: Build beta installers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+      - run: npm ci
+      - run: npm test
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: npm run build
+
+  publish:
+    name: Build ${{ matrix.label }}
+    needs: test
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            label: Windows x64
+            args: --target x86_64-pc-windows-msvc
+          - platform: macos-latest
+            label: macOS Apple Silicon
+            args: --target aarch64-apple-darwin
+          - platform: macos-latest
+            label: macOS Intel
+            args: --target x86_64-apple-darwin
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || 'x86_64-pc-windows-msvc' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__
+          releaseName: StudyStream v__VERSION__ ベータ
+          releaseBody: |
+            StudyStreamの初期ベータ版です。
+
+            - Windows: x64用インストーラー
+            - macOS: Apple Silicon用またはIntel用DMG
+
+            現時点では商用コード署名・Apple公証を行っていません。OSの警告が表示される場合があります。
+            Windowsは「詳細情報」から、macOSは「プライバシーとセキュリティ」から許可する必要があります。
+          releaseDraft: false
+          prerelease: true
+          args: ${{ matrix.args }}

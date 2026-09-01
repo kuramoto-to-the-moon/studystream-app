@@ -26,6 +26,9 @@
     ],
     "category": "Productivity",
     "shortDescription": "Study streaming control and OBS overlay",
-    "longDescription": "A local-first study timer, streaming control and OBS browser-source overlay."
+    "longDescription": "A local-first study timer, streaming control and OBS browser-source overlay.",
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }

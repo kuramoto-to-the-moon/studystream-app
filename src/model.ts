@@ -2,6 +2,8 @@ export type Phase = 'idle' | 'study' | 'break';
 export type Language = 'ja' | 'en';
 export type Layout = 'horizontal' | 'vertical';
 export type BoardFont = 'sans' | 'system' | 'modern';
+export type BoardColorPreset = 'dark' | 'light' | 'custom';
+export type CompletionSound = 'chime' | 'bell' | 'beep';
 export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
@@ -25,6 +27,7 @@ export const DEFAULT_BOARD_APPEARANCE = {
 export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
 export const metricKindIds: MetricKind[] = ['session', 'today', 'week', 'month', 'year', 'total', 'streaks'];
 export const boardFontIds: BoardFont[] = ['sans', 'system', 'modern'];
+export const completionSoundIds: CompletionSound[] = ['chime', 'bell', 'beep'];
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
 
 export function normalizeViewerCopy(value: string, maxLength: number) {
@@ -41,6 +44,12 @@ export function resolveBoardFont(value: unknown): BoardFont {
   return typeof value === 'string' && boardFontIds.includes(value as BoardFont)
     ? value as BoardFont
     : 'sans';
+}
+
+export function resolveCompletionSound(value: unknown): CompletionSound {
+  return typeof value === 'string' && completionSoundIds.includes(value as CompletionSound)
+    ? value as CompletionSound
+    : 'chime';
 }
 
 export interface SessionState {
@@ -83,9 +92,11 @@ export interface Settings {
   breakDurationSeconds?: number;
   autoCycleEnabled?: boolean;
   completionSoundEnabled?: boolean;
+  completionSound?: CompletionSound;
   language: Language;
   layout: Layout;
   boardFont?: BoardFont;
+  colorPreset?: BoardColorPreset;
   background: string;
   backgroundOpacity: number;
   textColor: string;
@@ -97,7 +108,6 @@ export interface Settings {
   defaultStreakVersion?: number;
   showMetricSeconds?: boolean;
   note?: string;
-  offstreamEnabled?: boolean;
   metricKinds?: Partial<Record<MetricWidgetId, MetricKind>>;
   messages: Record<'study' | 'paused' | 'break' | 'idle', string>;
   widgets: WidgetConfig[];
@@ -106,6 +116,7 @@ export interface Settings {
 
 export interface AppState {
   version: 1;
+  updatedAt?: number;
   session: SessionState;
   settings: Settings;
 }
@@ -117,9 +128,9 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     message: 'メッセージ',
     offstream: '今日の配信外学習',
     note: '常時表示する注記',
-    session: '現在の記録',
+    session: '開始後',
     today: '今日',
-    streaks: 'その他の項目',
+    streaks: 'カスタム項目',
     metric4: '集計表示',
     metric5: '集計表示',
     metric6: '集計表示',
@@ -131,7 +142,7 @@ export const widgetLabels: Record<Language, Record<WidgetId, string>> = {
     message: 'Message',
     offstream: 'Off-stream study today',
     note: 'Always-visible note',
-    session: 'Current record',
+    session: 'Since start',
     today: 'Today',
     streaks: 'Streak',
     metric4: 'Metric',
@@ -145,12 +156,12 @@ export const uiCopy = {
   ja: {
     idle: '待機中',
     study: '学習中',
-    paused: '一時停止中',
+    paused: '停止中',
     break: '休憩中',
     tracking: '学習時間を計測中',
     notTracking: '学習タイマーは一時停止中',
     remaining: '残り時間',
-    session: '現在の記録',
+    session: '開始後',
     today: '今日',
     total: '累計',
     days: '日',
@@ -164,7 +175,7 @@ export const uiCopy = {
     tracking: 'Study time is running',
     notTracking: 'Study time is paused',
     remaining: 'Time left',
-    session: 'Current record',
+    session: 'Since start',
     today: 'Today',
     total: 'Total',
     days: 'days',
@@ -174,16 +185,16 @@ export const uiCopy = {
 
 export const metricLabels: Record<Language, Record<MetricKind, string>> = {
   ja: {
-    session: '現在の記録',
+    session: '開始後',
     today: '今日',
     week: '今週',
     month: '今月',
     year: '今年',
     total: '累計',
-    streaks: 'その他の項目',
+    streaks: 'カスタム項目',
   },
   en: {
-    session: 'Current record',
+    session: 'Since start',
     today: 'Today',
     week: 'This week',
     month: 'This month',

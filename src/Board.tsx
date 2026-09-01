@@ -51,7 +51,7 @@ export function Board({
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
       && (widget.id !== 'note' || note.length > 0)
-      && (widget.id !== 'offstream' || (settings.offstreamEnabled && offstreamTodaySeconds > 0))
+      && (widget.id !== 'offstream' || offstreamTodaySeconds > 0)
       && (!metricSlotIds.includes(widget.id as MetricWidgetId)
         || metricKinds[widget.id as MetricWidgetId] !== 'streaks'
         || visibleStreaks.length > 0))
@@ -98,7 +98,7 @@ export function Board({
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
-      <span>{kind === 'session' ? (language === 'ja' ? '現在の記録' : 'Current record') : metricLabels[language][kind]}</span>
+      <span>{kind === 'session' ? (language === 'ja' ? '開始後' : 'Since start') : metricLabels[language][kind]}</span>
       {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
@@ -122,7 +122,7 @@ export function Board({
     message: <span className="board-message">{message}</span>,
     offstream: (
       <span className="board-offstream">
-        <span>{language === 'ja' ? '配信外' : 'Off-stream'}</span>
+        <span>{language === 'ja' ? '配信外学習' : 'Off-stream study'}</span>
         {durationContent(offstreamTodaySeconds)}
       </span>
     ),

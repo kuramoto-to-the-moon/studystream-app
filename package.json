@@ -11,6 +11,8 @@
     "build": "tsc -b && vite build",
     "start": "node server/index.mjs",
     "check": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "desktop:dev": "tauri dev",
     "desktop:build": "node scripts/build-desktop.mjs"
   },
@@ -28,6 +30,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^4.1.11"
   }
 }
