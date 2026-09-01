@@ -292,26 +292,29 @@ function recommendedObsSize(state: AppState, session: NonNullable<ReturnType<typ
   const visibleWidgets = state.settings.widgets.filter((widget) => widget.visible
     && (widget.id !== 'note' || note.length > 0)
     && (widget.id !== 'offstream' || offstreamVisible));
+  const metricKinds = { ...defaultMetricKinds, ...state.settings.metricKinds };
+  const metricWidgets = visibleWidgets.filter((widget) => ['session', 'today', 'streaks'].includes(widget.id));
+  const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks').length;
+  const hasExtraItem = metricWidgets.some((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
+  const hasSupplement = visibleWidgets.some((widget) => widget.id === 'offstream') || hasExtraItem;
 
   if (state.settings.layout === 'vertical') {
     const has = (id: (typeof visibleWidgets)[number]['id']) => visibleWidgets.some((widget) => widget.id === id);
-    const metricCount = visibleWidgets.filter((widget) => ['session', 'today', 'streaks'].includes(widget.id)).length;
-    const calculatedHeight = 24
-      + (has('state') ? 56 : 0)
-      + (has('timer') ? 168 : 0)
-      + (has('message') ? 96 : 0)
-      + (metricCount > 0 ? 24 + metricCount * 42 : 0)
-      + (has('offstream') ? 68 : 0)
-      + (has('note') ? 78 : 0);
-    return { width: 320, height: Math.min(760, Math.max(300, calculatedHeight)) };
+    const calculatedHeight = (has('state') ? 43 : 0)
+      + (has('timer') ? 84 : 0)
+      + (has('message') ? 72 : 0)
+      + (metricCount > 0 ? 24 + metricCount * 14 + Math.max(0, metricCount - 1) * 10 : 0)
+      + (hasSupplement ? 39 : 0)
+      + (has('note') ? 43 : 0);
+    return { width: 320, height: Math.min(520, Math.max(84, calculatedHeight)) };
   }
 
-  const auxiliaryRows = state.settings.widgets.filter((widget) => widget.visible && (
-    (widget.id === 'note' && note.length > 0)
-    || (widget.id === 'offstream' && state.settings.offstreamEnabled && (session.offstreamTodaySeconds ?? 0) > 0)
-  )).length;
+  const auxiliaryRows = (hasSupplement ? 1 : 0)
+    + (visibleWidgets.some((widget) => widget.id === 'note') ? 1 : 0);
 
-  return { width: 600, height: 180 + auxiliaryRows * 52 };
+  const hasMainRow = visibleWidgets.some((widget) => ['state', 'timer', 'message'].includes(widget.id));
+  const hasMetrics = metricCount > 0;
+  return { width: 600, height: (hasMainRow ? 56 : 0) + (hasMetrics ? 34 : 0) + auxiliaryRows * 28 };
 }
 
 function ControlPage({

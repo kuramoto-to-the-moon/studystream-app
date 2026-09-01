@@ -8,7 +8,7 @@ export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'tota
 export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
-  backgroundOpacity: 0.9,
+  backgroundOpacity: 0.72,
   textColor: '#ffffff',
   textOpacity: 1,
   secondaryTextColor: '#ffffff',

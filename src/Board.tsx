@@ -4,7 +4,6 @@ import {
   defaultMetricKinds,
   DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
-  formatDuration,
   metricLabels,
   metricSeconds,
   phaseKey,
@@ -61,14 +60,15 @@ export function Board({
   const clockSeconds = clock.slice(clockSecondsStart);
 
   const durationContent = (seconds: number) => {
-    if (!settings.showMetricSeconds) return <strong>{formatDuration(seconds, language)}</strong>;
     const hours = Math.floor(Math.max(0, seconds) / 3600);
     const minutes = Math.floor((Math.max(0, seconds) % 3600) / 60);
     const secondsPart = Math.max(0, Math.floor(seconds)) % 60;
     const lengthClass = hours >= 10_000 ? ' is-very-long' : hours >= 100 ? ' is-long' : '';
+    const main = `${hours.toLocaleString('en-US')}:${String(minutes).padStart(2, '0')}`;
+    if (!settings.showMetricSeconds) return <strong className={lengthClass.trim()}>{main}</strong>;
     return (
       <span className={`board-metric-time${lengthClass}`}>
-        <strong>{`${hours.toLocaleString('en-US')}:${String(minutes).padStart(2, '0')}`}</strong>
+        <strong>{main}</strong>
         <small>{`:${String(secondsPart).padStart(2, '0')}`}</small>
       </span>
     );
@@ -89,13 +89,18 @@ export function Board({
     </span>
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
-      <span>{metricLabels[language][kind]}</span>
+      <span>{kind === 'session' ? (language === 'ja' ? '今回' : 'Session') : metricLabels[language][kind]}</span>
       {durationContent(metricSeconds(session, kind, now))}
     </span>
   );
 
   const content: Record<WidgetId, React.ReactNode> = {
-    state: <strong className="board-state">{phaseLabel(session, language)}</strong>,
+    state: (
+      <strong className="board-state">
+        <span>{phaseLabel(session, language)}</span>
+        {key === 'paused' && <small>{language === 'ja' ? '[停止]' : '[STOPPED]'}</small>}
+      </strong>
+    ),
     timer: (
       <span className="board-timer-wrap">
         <strong className={`board-timer${remaining >= 3600 ? ' is-long' : ''}`}>
@@ -107,10 +112,8 @@ export function Board({
     message: <span className="board-message" title={message}>{message}</span>,
     offstream: (
       <span className="board-offstream">
-        <span>{language === 'ja' ? '配信外の学習' : 'Off-stream study'}</span>
-        <strong>{language === 'ja'
-          ? `今日は${formatDuration(offstreamTodaySeconds, language)}学習しました`
-          : `${formatDuration(offstreamTodaySeconds, language)} today`}</strong>
+        <span>{language === 'ja' ? '配信外' : 'Off-stream'}</span>
+        {durationContent(offstreamTodaySeconds)}
       </span>
     ),
     note: <span className="board-note" title={note}>{note}</span>,
@@ -130,19 +133,31 @@ export function Board({
   );
 
   const mainWidgets = visibleWidgets.filter((widget) => widget.id === 'state' || widget.id === 'timer' || widget.id === 'message');
-  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'offstream' || widget.id === 'note');
-  const metricWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
+  const metricSlotWidgets = visibleWidgets.filter((widget) => widget.id === 'session' || widget.id === 'today' || widget.id === 'streaks');
+  const metricWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] !== 'streaks');
+  const extraWidgets = metricSlotWidgets.filter((widget) => metricKinds[widget.id as keyof typeof metricKinds] === 'streaks');
+  const supplementWidgets = [
+    ...visibleWidgets.filter((widget) => widget.id === 'offstream'),
+    ...extraWidgets,
+  ];
+  const noteWidgets = visibleWidgets.filter((widget) => widget.id === 'note');
+  const auxiliaryRowCount = (supplementWidgets.length > 0 ? 1 : 0) + (noteWidgets.length > 0 ? 1 : 0);
 
   return (
     <div
-      className={`board board-${settings.layout} board-lang-${language}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${noteWidgets.length > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${noteWidgets.length}` : ''}`}
+      className={`board board-${settings.layout} board-lang-${language}${settings.backgroundOpacity > 0 && settings.backgroundOpacity < 1 ? ' board-translucent' : ''}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${auxiliaryRowCount > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${auxiliaryRowCount}` : ''}`}
       style={boardStyle}
       aria-label="視聴者向け表示"
     >
       {mainWidgets.length > 0 && <div className="board-row board-main-row">{mainWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}
-      {noteWidgets.length > 0 && (
+      {auxiliaryRowCount > 0 && (
         <div className="board-auxiliary-rows">
+          {supplementWidgets.length > 0 && (
+            <div className="board-row board-note-row board-supplement-row">
+              {supplementWidgets.map(renderWidget)}
+            </div>
+          )}
           {noteWidgets.map((widget) => (
             <div key={`row-${widget.id}`} className={`board-row board-note-row board-note-row-${widget.id}`}>
               {renderWidget(widget)}
