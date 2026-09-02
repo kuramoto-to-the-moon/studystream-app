@@ -2,6 +2,12 @@ name: Build beta installers
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_unsigned_beta:
+        description: 署名なしベータを公開する場合のみ有効にする
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -9,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Prevent accidental unsigned releases
+        if: ${{ !inputs.confirm_unsigned_beta }}
+        run: |
+          echo "::error::Code signing is not configured. Enable confirm_unsigned_beta only for an intentional unsigned beta release."
+          exit 1
       - name: Install Tauri system dependencies
         run: |
           sudo apt-get update
