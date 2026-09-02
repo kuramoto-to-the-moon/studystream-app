@@ -37,7 +37,10 @@ jobs:
         include:
           - platform: windows-latest
             label: Windows x64
-            args: --target x86_64-pc-windows-msvc
+            # MSI rejects semantic prerelease identifiers such as `beta.1`.
+            # The NSIS installer supports the beta version and is the public
+            # Windows artifact we link from the website.
+            args: --target x86_64-pc-windows-msvc --bundles nsis
           - platform: macos-latest
             label: macOS Apple Silicon
             args: --target aarch64-apple-darwin
