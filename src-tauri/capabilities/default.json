@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default StudyStream desktop capability",
+  "description": "Default StudyDot desktop capability",
   "windows": ["main"],
   "permissions": ["core:default"]
 }

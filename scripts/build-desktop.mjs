@@ -9,10 +9,11 @@ function run(command, args) {
 
 const tauriArgs = ['tauri', 'build'];
 if (process.platform === 'darwin') tauriArgs.push('--bundles', 'app,dmg');
+run(process.execPath, ['scripts/generate-license-bundle.mjs']);
 run('npx', tauriArgs);
 
 if (process.platform === 'darwin') {
-  const appPath = resolve('src-tauri/target/release/bundle/macos/StudyStream.app');
+  const appPath = resolve('src-tauri/target/release/bundle/macos/StudyDot.app');
   const dmgPath = resolve('src-tauri/target/release/bundle/dmg');
   console.log(`Local macOS app: ${appPath}`);
   console.log(`Local macOS installer directory: ${dmgPath}`);

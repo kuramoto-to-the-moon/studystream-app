@@ -1,17 +1,17 @@
-# StudyStream
+# StudyDot
 
-StudyStreamは、勉強配信者向けのローカルファーストなデスクトップアプリです。学習時間と休憩を操作する画面、視聴者に見せる情報を編集する画面、OBS Browser Source用のオーバーレイをひとつにまとめています。
+StudyDotは、勉強配信者向けのローカルファーストなデスクトップアプリです。学習時間と休憩を操作する画面、視聴者に見せる情報を編集する画面、OBS Browser Source用のオーバーレイをひとつにまとめています。
 
 現在はmacOSとWindows向けのベータ版を開発中です。データは端末内に保存され、アプリの画面とOBS表示の通信もローカルホスト内で完結します。
 
 ## ダウンロード
 
-ベータ版は[GitHub Releases](https://github.com/kuramoto-to-the-moon/studystream-app/releases)からダウンロードできます。
+ベータ版は[StudyDot公式サイト](https://studydot.app/)からダウンロードできます。配布物はCloudflare R2に置き、サイトから直接取得できるようにします。
 
 - Windows：x64用インストーラー
 - macOS：Apple Silicon用とIntel用のDMG
 
-現時点の配布物には商用のコード署名・公証を行っていません。WindowsではSmartScreen、macOSではGatekeeperの警告が表示される場合があります。初めて使う場合は、リリースページの注意事項も確認してください。
+現時点の配布物には商用のコード署名・公証を行っていません。WindowsではSmartScreen、macOSではGatekeeperの警告が表示される場合があります。初めて使う場合は、サイトに記載する起動手順も確認してください。
 
 ## 現在の機能
 
@@ -41,6 +41,8 @@ StudyStreamは、勉強配信者向けのローカルファーストなデスク
 
 視聴者向け言語の設定はOBS表示だけに適用され、配信者が操作する画面は日本語のままです。
 
+マイクを使う自動停止機能は検証用コードとして切り離してあり、現在の公開ベータにはUI・モデル・ONNX Runtimeを含めません。
+
 ### OBS連携
 
 アプリ起動中、次のURLをOBSのBrowser Sourceへ登録します。
@@ -62,8 +64,10 @@ http://127.0.0.1:47831/overlay
 
 デスクトップアプリでは、状態と設定をOS標準のアプリデータフォルダにある`state.json`へ保存します。
 
-- macOS：`~/Library/Application Support/app.studystream.desktop/state.json`
-- Windows：`%APPDATA%\\app.studystream.desktop\\state.json`
+- macOS：`~/Library/Application Support/app.studydot.desktop/state.json`
+- Windows：`%APPDATA%\\app.studydot.desktop\\state.json`
+
+旧StudyStream開発版の保存先がある場合は、初回起動時に状態とウィンドウサイズをStudyDotの保存先へコピーします。
 
 書き込み途中の破損を避けるため、一時ファイルへ書いてから置き換えます。タイマーは開始・終了時刻から画面側で計算し、操作時と15秒ごとの復旧用チェックポイントで保存します。毎秒ディスクへ書き込むことはありません。
 
@@ -117,12 +121,13 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-macOSでは`src-tauri/target/release/bundle/macos/StudyStream.app`とDMGが生成され、手元での起動確認用にアドホック署名されます。一般配布で警告を減らすには、別途Apple Developer IDによる署名と公証が必要です。Windowsでは同じソースからWindows用バンドルを生成します。
+macOSでは`src-tauri/target/release/bundle/macos/StudyDot.app`とDMGが生成され、手元での起動確認用にアドホック署名されます。一般配布で警告を減らすには、別途Apple Developer IDによる署名と公証が必要です。Windowsでは同じソースからWindows用バンドルを生成します。
 
 アプリは同時に複数起動できません。また、`47831`番ポートを別のアプリが使用している場合は起動できません。
 
 ## ライセンス
 
-StudyStreamの独自コードは[MIT License](LICENSE)で提供します。
+StudyDotの独自コードは[MIT License](LICENSE)で提供します。
 
 第三者ライブラリと同梱フォントには、それぞれのライセンスが適用されます。確認結果と主要な依存関係は[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)を参照してください。
+配布ビルドでは、各プラットフォームで依存ライセンス一覧を再生成してインストーラーへ同梱します。

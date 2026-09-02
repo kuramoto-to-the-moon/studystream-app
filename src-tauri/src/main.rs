@@ -1,3 +1,3 @@
 fn main() {
-    studystream_lib::run();
+    studydot_lib::run();
 }

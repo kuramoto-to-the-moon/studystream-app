@@ -4,24 +4,29 @@ export type Layout = 'horizontal' | 'vertical';
 export type BoardFont = 'sans' | 'system' | 'modern';
 export type BoardColorPreset = 'dark' | 'light' | 'custom';
 export type CompletionSound = 'chime' | 'bell' | 'beep';
+export type PauseReason = 'manual' | 'voice';
 export type WidgetId = 'state' | 'timer' | 'message' | 'offstream' | 'note' | 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricWidgetId = 'session' | 'today' | 'streaks' | 'metric4' | 'metric5' | 'metric6' | 'metric7';
 export type MetricKind = 'session' | 'today' | 'week' | 'month' | 'year' | 'total' | 'streaks';
+export type TimeMetricKind = Exclude<MetricKind, 'streaks'>;
 
-export const DEFAULT_SECONDARY_TEXT_OPACITY = 0.78;
+export const DEFAULT_SECONDARY_TEXT_COLOR = '#a3a3a3';
+export const DEFAULT_SECONDARY_TEXT_OPACITY = 1;
 export const MESSAGE_MAX_LENGTH = 60;
 export const NOTE_MAX_LENGTH = 80;
 export const MAX_INTERVAL_MINUTES = 24 * 60;
 export const MIN_INTERVAL_MINUTES = 1;
+export const AUTO_PAUSE_MIN_SECONDS = 1;
+export const AUTO_PAUSE_MAX_SECONDS = 10;
 export const DEFAULT_BOARD_APPEARANCE = {
   background: '#000000',
-  backgroundOpacity: 0.62,
+  backgroundOpacity: 0.78,
   textColor: '#ffffff',
   textOpacity: 1,
-  secondaryTextColor: '#ffffff',
+  secondaryTextColor: DEFAULT_SECONDARY_TEXT_COLOR,
   secondaryTextOpacity: DEFAULT_SECONDARY_TEXT_OPACITY,
-  secondaryTextDefaultVersion: 2,
-  boardAppearanceDefaultVersion: 2,
+  secondaryTextDefaultVersion: 4,
+  boardAppearanceDefaultVersion: 3,
 } as const;
 
 export const metricSlotIds: MetricWidgetId[] = ['session', 'today', 'streaks', 'metric4', 'metric5', 'metric6', 'metric7'];
@@ -31,7 +36,7 @@ export const completionSoundIds: CompletionSound[] = ['chime', 'bell', 'beep'];
 export const widgetOrder: WidgetId[] = ['state', 'timer', 'message', 'offstream', 'note', ...metricSlotIds];
 
 export function normalizeViewerCopy(value: string, maxLength: number) {
-  return value.replace(/\s+/g, ' ').trimStart().slice(0, maxLength);
+  return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }
 
 export function clampIntervalMinutes(value: number) {
@@ -59,6 +64,7 @@ export interface SessionState {
   phaseStartedAt: number | null;
   phaseEndsAt: number | null;
   pausedRemainingSeconds?: number | null;
+  pauseReason?: PauseReason | null;
   lastCheckpointAt: number;
   sessionSeconds: number;
   todaySeconds: number;
@@ -85,6 +91,20 @@ export interface Streak {
   visible: boolean;
 }
 
+export function localizedStreakName(item: Streak, language: Language) {
+  if (item.id === 'workout' && item.name === '筋トレ') {
+    return language === 'en' ? 'Workout' : item.name;
+  }
+  return item.name;
+}
+
+export function localizedStreakUnit(item: Streak, language: Language) {
+  if (item.id === 'workout' && item.unit === '回') {
+    return language === 'en' ? 'times' : item.unit;
+  }
+  return item.unit;
+}
+
 export interface Settings {
   studyMinutes: number;
   breakMinutes: number;
@@ -93,6 +113,9 @@ export interface Settings {
   autoCycleEnabled?: boolean;
   completionSoundEnabled?: boolean;
   completionSound?: CompletionSound;
+  autoPauseVoiceEnabled?: boolean;
+  autoPauseVoiceSeconds?: number;
+  speechLanguage?: Language;
   language: Language;
   layout: Layout;
   boardFont?: BoardFont;
@@ -114,9 +137,31 @@ export interface Settings {
   streaks: Streak[];
 }
 
+export const defaultViewerMessages: Record<Language, Settings['messages']> = {
+  ja: {
+    study: '集中しています。コメントは休憩中に読みます。',
+    paused: '少し会話しています。学習タイマーは一時停止中です。',
+    break: '休憩中です。コメントを読んでいます。',
+    idle: 'まもなく学習を始めます。',
+  },
+  en: {
+    study: 'Focusing now. I will read chat during the break.',
+    paused: 'Chatting briefly. The study timer is paused.',
+    break: 'On a break and reading chat.',
+    idle: 'Study will begin shortly.',
+  },
+};
+
+export function clampAutoPauseSeconds(value: number, fallback = 2) {
+  const seconds = Number.isFinite(value) ? value : fallback;
+  return Math.min(AUTO_PAUSE_MAX_SECONDS, Math.max(AUTO_PAUSE_MIN_SECONDS, seconds));
+}
+
 export interface AppState {
   version: 1;
   updatedAt?: number;
+  settingsUpdatedAt?: number;
+  sessionUpdatedAt?: number;
   session: SessionState;
   settings: Settings;
 }
@@ -231,6 +276,54 @@ export function resolveMetricKinds(saved?: Partial<Record<MetricWidgetId, Metric
   return resolved;
 }
 
+export function recommendedObsSize(state: AppState) {
+  // OBS keeps one stable viewport while a stream is running. Reserve the
+  // maximum height enabled by the current layout and visible items so a state
+  // change or the longest allowed copy cannot introduce scrollbars.
+  const visibleWidgets = state.settings.widgets.filter((widget) => widget.visible);
+  const metricKinds = resolveMetricKinds(state.settings.metricKinds);
+  const metricWidgets = visibleWidgets.filter((widget) => metricSlotIds.includes(widget.id as MetricWidgetId));
+  const metricCount = metricWidgets.filter((widget) => metricKinds[widget.id as MetricWidgetId] !== 'streaks').length;
+  const showsCustomItems = metricWidgets.some((widget) => metricKinds[widget.id as MetricWidgetId] === 'streaks');
+  const customItemCount = showsCustomItems ? state.settings.streaks.filter((item) => item.visible).length : 0;
+  const supplementCount = (visibleWidgets.some((widget) => widget.id === 'offstream') ? 1 : 0) + customItemCount;
+  const hasSupplement = supplementCount > 0;
+  const verticalSupplementRows = Math.max(1, Math.ceil(supplementCount / 2));
+  const hasMessage = visibleWidgets.some((widget) => widget.id === 'message');
+  const hasNote = visibleWidgets.some((widget) => widget.id === 'note');
+  const borderAllowance = 2;
+  const roundUp = (height: number) => Math.ceil(Math.max(84, height) / 4) * 4;
+
+  if (state.settings.layout === 'vertical') {
+    const has = (id: WidgetId) => visibleWidgets.some((widget) => widget.id === id);
+    const calculatedHeight = borderAllowance
+      + (has('state') ? 48 : 0)
+      + (has('timer') ? 90 : 0)
+      // Messages and notes can occupy up to three lines.
+      + (hasMessage ? 92 : 0)
+      + (metricCount > 0 ? 28 + metricCount * 18 + Math.max(0, metricCount - 1) * 10 : 0)
+      + (hasSupplement ? 20 + verticalSupplementRows * 18 + Math.max(0, verticalSupplementRows - 1) * 8 : 0)
+      + (hasNote ? 80 : 0);
+    return { width: 320, height: roundUp(calculatedHeight) };
+  }
+
+  const hasMainRow = visibleWidgets.some((widget) => ['state', 'timer', 'message'].includes(widget.id));
+  const metricRows = metricCount > 0 ? Math.max(1, Math.ceil(metricCount / 3)) : 0;
+  // With off-stream study beside the custom-item group, the custom items have
+  // room for two columns. Without it, the full-width group fits three.
+  const hasOffstream = visibleWidgets.some((widget) => widget.id === 'offstream');
+  const customColumns = hasOffstream ? 2 : 3;
+  const supplementRows = hasSupplement
+    ? Math.max(1, Math.ceil(customItemCount / customColumns))
+    : 0;
+  const calculatedHeight = borderAllowance
+    + (hasMainRow ? (hasMessage ? 92 : 56) : 0)
+    + (metricRows > 0 ? 34 + (metricRows - 1) * 15 : 0)
+    + (supplementRows > 0 ? 28 + (supplementRows - 1) * 20 : 0)
+    + (hasNote ? 56 : 0);
+  return { width: 600, height: roundUp(calculatedHeight) };
+}
+
 export function phaseKey(session: SessionState) {
   if (phaseTimerPaused(session)) return 'paused' as const;
   return session.phase;
@@ -267,11 +360,19 @@ export function phaseLabel(session: SessionState, language: Language) {
 export function materializeSession(session: SessionState, now = Date.now()): SessionState {
   const currentDay = localDayKey(now);
   const storedDay = session.dayKey || currentDay;
-  const dailySeconds = session.dailySeconds ?? (session.totalSeconds > 0 ? { [currentDay]: session.totalSeconds } : {});
-  const offstreamTodaySeconds = session.offstreamTodaySeconds ?? 0;
-  const normalized = storedDay === currentDay
-    ? { ...session, dayKey: currentDay, dailySeconds, offstreamTodaySeconds }
-    : { ...session, dayKey: currentDay, todaySeconds: 0, offstreamTodaySeconds: 0, dailySeconds };
+  const needsDailySeconds = session.dailySeconds == null;
+  const needsOffstreamSeconds = session.offstreamTodaySeconds == null;
+  const dayChanged = storedDay !== currentDay;
+  const normalized = dayChanged || needsDailySeconds || needsOffstreamSeconds || !session.dayKey
+    ? {
+        ...session,
+        dayKey: currentDay,
+        todaySeconds: dayChanged ? 0 : session.todaySeconds,
+        offstreamTodaySeconds: dayChanged ? 0 : (session.offstreamTodaySeconds ?? 0),
+        dailySeconds: session.dailySeconds
+          ?? (session.totalSeconds > 0 ? { [currentDay]: session.totalSeconds } : {}),
+      }
+    : session;
   if (normalized.phase !== 'study' || !normalized.tracking) return normalized;
   const elapsed = Math.max(0, Math.floor((now - session.lastCheckpointAt) / 1000));
   if (!elapsed) return normalized;
@@ -322,28 +423,40 @@ export function formatDuration(seconds: number, language: Language) {
   return hours > 0 ? `${hours}時間${minutes}分` : `${minutes}分`;
 }
 
-export function metricSeconds(session: SessionState, kind: Exclude<MetricKind, 'streaks'>, now = Date.now()) {
-  if (kind === 'session') return session.sessionSeconds;
-  if (kind === 'today') return session.todaySeconds;
-  if (kind === 'total') return session.totalSeconds;
-
+export function metricTotals(session: SessionState, now = Date.now()): Record<TimeMetricKind, number> {
   const date = new Date(now);
   const year = String(date.getFullYear());
   const month = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  let start = '';
-  if (kind === 'year') start = `${year}-01-01`;
-  if (kind === 'month') start = `${month}-01`;
-  if (kind === 'week') {
-    const monday = new Date(date);
-    monday.setHours(0, 0, 0, 0);
-    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-    start = localDayKey(monday.getTime());
-  }
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const weekStart = localDayKey(monday.getTime());
+  const monthStart = `${month}-01`;
+  const yearStart = `${year}-01-01`;
   const end = localDayKey(now);
-  return Object.entries(session.dailySeconds ?? {}).reduce(
-    (total, [day, seconds]) => total + (day >= start && day <= end ? seconds : 0),
-    0,
-  );
+  let week = 0;
+  let currentMonth = 0;
+  let currentYear = 0;
+
+  for (const [day, seconds] of Object.entries(session.dailySeconds ?? {})) {
+    if (day > end) continue;
+    if (day >= yearStart) currentYear += seconds;
+    if (day >= monthStart) currentMonth += seconds;
+    if (day >= weekStart) week += seconds;
+  }
+
+  return {
+    session: session.sessionSeconds,
+    today: session.todaySeconds,
+    week,
+    month: currentMonth,
+    year: currentYear,
+    total: session.totalSeconds,
+  };
+}
+
+export function metricSeconds(session: SessionState, kind: TimeMetricKind, now = Date.now()) {
+  return metricTotals(session, now)[kind];
 }
 
 export function streakDays(
@@ -351,24 +464,32 @@ export function streakDays(
   dayMode: Streak['dayMode'] = 'all',
   includedWeekdays: number[] = [],
 ) {
-  const start = new Date(`${startedOn}T00:00:00`);
-  if (Number.isNaN(start.getTime())) return 0;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startedOn);
+  if (!match) return 0;
+  const startYear = Number(match[1]);
+  const startMonth = Number(match[2]) - 1;
+  const startDate = Number(match[3]);
+  const startUtc = Date.UTC(startYear, startMonth, startDate);
+  const verifiedStart = new Date(startUtc);
+  if (verifiedStart.getUTCFullYear() !== startYear
+    || verifiedStart.getUTCMonth() !== startMonth
+    || verifiedStart.getUTCDate() !== startDate) return 0;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (start > today) return -1;
-  let count = 0;
-  const cursor = new Date(start);
-  while (cursor < today) {
-    cursor.setDate(cursor.getDate() + 1);
-    const weekday = cursor.getDay();
-    const included = dayMode === 'weekdays'
-      ? weekday >= 1 && weekday <= 5
-      : dayMode === 'weekends'
-        ? weekday === 0 || weekday === 6
-        : dayMode === 'custom'
-          ? includedWeekdays.includes(weekday)
-          : true;
-    if (included) count += 1;
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const elapsedDays = Math.floor((todayUtc - startUtc) / 86_400_000);
+  if (elapsedDays < 0) return -1;
+  if (dayMode === 'all') return elapsedDays;
+
+  const selectedWeekdays = dayMode === 'weekdays'
+    ? new Set([1, 2, 3, 4, 5])
+    : dayMode === 'weekends'
+      ? new Set([0, 6])
+      : new Set(includedWeekdays);
+  const completeWeeks = Math.floor(elapsedDays / 7);
+  let count = completeWeeks * selectedWeekdays.size;
+  const startWeekday = verifiedStart.getUTCDay();
+  for (let offset = completeWeeks * 7 + 1; offset <= elapsedDays; offset += 1) {
+    if (selectedWeekdays.has((startWeekday + offset) % 7)) count += 1;
   }
   return count;
 }

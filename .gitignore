@@ -6,3 +6,9 @@ data/*.json
 data/*.tmp
 .DS_Store
 website/
+
+# Experimental local speech assets are intentionally excluded from the public
+# beta. They are large, optional, and should be distributed separately if the
+# feature is enabled in a future release.
+public/models/
+public/onnx/

@@ -1,7 +1,7 @@
 use async_stream::stream;
 use axum::{
     extract::{Request, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri},
     middleware::{self, Next},
     response::{sse::Event, IntoResponse, Response, Sse},
     routing::{get, post},
@@ -48,7 +48,7 @@ pub fn start(data_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         io::Error::new(
             error.kind(),
             format!(
-                "StudyStream could not use http://{HOST}. Close another running copy and try again: {error}"
+                "StudyDot could not use http://{HOST}. Close another running copy and try again: {error}"
             ),
         )
     })?;
@@ -62,9 +62,15 @@ pub fn start(data_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     thread::Builder::new()
-        .name("studystream-local-server".into())
+        .name("studydot-local-server".into())
         .spawn(move || {
-            let runtime = tokio::runtime::Runtime::new().expect("create local server runtime");
+            // The server only handles a handful of loopback requests. A
+            // single-thread runtime avoids keeping a worker pool alive while
+            // preserving async SSE and file serving.
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("create local server runtime");
             runtime.block_on(async move {
                 let listener =
                     tokio::net::TcpListener::from_std(listener).expect("use local server socket");
@@ -94,6 +100,19 @@ async fn enforce_local_host(request: Request, next: Next) -> Response {
     if !allowed {
         return StatusCode::FORBIDDEN.into_response();
     }
+    if !is_allowed_write_request(
+        request.method(),
+        request
+            .headers()
+            .get(header::ORIGIN)
+            .and_then(|value| value.to_str().ok()),
+        request
+            .headers()
+            .get("sec-fetch-site")
+            .and_then(|value| value.to_str().ok()),
+    ) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
 
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
@@ -114,6 +133,21 @@ async fn enforce_local_host(request: Request, next: Next) -> Response {
 
 fn is_allowed_host(host: Option<&str>) -> bool {
     host.is_some_and(|value| value == HOST || value == LOCALHOST)
+}
+
+fn is_allowed_write_request(
+    method: &Method,
+    origin: Option<&str>,
+    fetch_site: Option<&str>,
+) -> bool {
+    if method == Method::GET || method == Method::HEAD {
+        return true;
+    }
+    if fetch_site == Some("cross-site") {
+        return false;
+    }
+    origin
+        .is_none_or(|value| value == "http://127.0.0.1:47831" || value == "http://localhost:47831")
 }
 
 async fn get_state(State(state): State<ServerState>) -> Json<Value> {
@@ -259,7 +293,7 @@ fn load_or_initialize(path: &Path) -> io::Result<Value> {
 
 fn save_atomic(path: &Path, value: &Value) -> io::Result<()> {
     let temporary = path.with_extension("tmp");
-    let bytes = serde_json::to_vec_pretty(value)
+    let bytes = serde_json::to_vec(value)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     fs::write(&temporary, bytes)?;
     #[cfg(target_os = "windows")]
@@ -280,6 +314,7 @@ fn default_state() -> Value {
             "phaseStartedAt": null,
             "phaseEndsAt": null,
             "pausedRemainingSeconds": null,
+            "pauseReason": null,
             "lastCheckpointAt": 0,
             "sessionSeconds": 0,
             "todaySeconds": 0,
@@ -296,6 +331,9 @@ fn default_state() -> Value {
             "autoCycleEnabled": true,
             "completionSoundEnabled": true,
             "completionSound": "chime",
+            "autoPauseVoiceEnabled": false,
+            "autoPauseVoiceSeconds": 2,
+            "speechLanguage": "ja",
             "language": "ja",
             "layout": "horizontal",
             "boardFont": "sans",
@@ -344,14 +382,35 @@ fn default_state() -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_host, HOST, LOCALHOST};
+    use super::{is_allowed_host, is_allowed_write_request, HOST, LOCALHOST};
+    use axum::http::Method;
 
     #[test]
     fn accepts_only_the_expected_loopback_hosts() {
         assert!(is_allowed_host(Some(HOST)));
         assert!(is_allowed_host(Some(LOCALHOST)));
-        assert!(!is_allowed_host(Some("studystream.example:47831")));
+        assert!(!is_allowed_host(Some("studydot.example:47831")));
         assert!(!is_allowed_host(Some("127.0.0.1:9999")));
         assert!(!is_allowed_host(None));
+    }
+
+    #[test]
+    fn blocks_cross_origin_state_changes() {
+        assert!(is_allowed_write_request(
+            &Method::PUT,
+            Some("http://127.0.0.1:47831"),
+            Some("same-origin"),
+        ));
+        assert!(is_allowed_write_request(&Method::POST, None, None));
+        assert!(!is_allowed_write_request(
+            &Method::PUT,
+            Some("https://attacker.example"),
+            Some("cross-site"),
+        ));
+        assert!(is_allowed_write_request(
+            &Method::GET,
+            Some("https://attacker.example"),
+            Some("cross-site"),
+        ));
     }
 }

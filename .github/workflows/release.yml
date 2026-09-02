@@ -63,9 +63,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: app-v__VERSION__
-          releaseName: StudyStream v__VERSION__ ベータ
+          releaseName: StudyDot v__VERSION__ ベータ
           releaseBody: |
-            StudyStreamの初期ベータ版です。
+            StudyDotの初期ベータ版です。
 
             - Windows: x64用インストーラー
             - macOS: Apple Silicon用またはIntel用DMG

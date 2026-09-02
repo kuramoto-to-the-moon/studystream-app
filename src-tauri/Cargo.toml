@@ -1,13 +1,13 @@
 [package]
-name = "studystream"
-version = "0.1.0"
+name = "studydot"
+version = "0.0.1-beta.1"
 description = "A local-first OBS companion for study streamers"
-authors = ["StudyStream"]
+authors = ["StudyDot"]
 edition = "2021"
 license = "MIT"
 
 [lib]
-name = "studystream_lib"
+name = "studydot_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

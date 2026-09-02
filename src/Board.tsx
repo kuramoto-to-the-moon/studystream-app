@@ -3,10 +3,12 @@ import type { AppState, MetricKind, MetricWidgetId, SessionState, WidgetId } fro
 import {
   DEFAULT_SECONDARY_TEXT_OPACITY,
   formatClock,
+  localizedStreakName,
+  localizedStreakUnit,
   metricKindIds,
   metricLabels,
   metricSlotIds,
-  metricSeconds,
+  metricTotals,
   phaseKey,
   phaseLabel,
   phaseTimerPaused,
@@ -48,6 +50,7 @@ export function Board({
     ),
   } as CSSProperties;
   const metricKinds = resolveMetricKinds(settings.metricKinds);
+  const timeMetrics = metricTotals(session, now);
   const visibleWidgets = [...settings.widgets]
     .filter((widget) => widget.visible
       && (widget.id !== 'note' || note.length > 0)
@@ -84,10 +87,10 @@ export function Board({
           : 0;
         return (
           <span className="board-metric board-streak" key={item.id}>
-            <span>{item.name || metricLabels[language].streaks}</span>
+            <span>{localizedStreakName(item, language) || metricLabels[language].streaks}</span>
             <strong>
               {item.kind === 'count'
-                ? `${Math.max(0, Math.floor(item.count ?? 0)).toLocaleString(language)}${item.unit || (language === 'ja' ? '回' : ' times')}`
+                ? `${Math.max(0, Math.floor(item.count ?? 0)).toLocaleString(language)}${language === 'ja' ? '' : ' '}${localizedStreakUnit(item, language) || (language === 'ja' ? '回' : 'times')}`
                 : days < 0
                   ? copy.beforeStart
                   : `${days}${language === 'ja' ? copy.days : ` ${copy.days}`}`}
@@ -99,7 +102,7 @@ export function Board({
   ) : (
     <span className={`board-metric${settings.showMetricSeconds ? ' with-seconds' : ''}`}>
       <span>{kind === 'session' ? (language === 'ja' ? '開始後' : 'Since start') : metricLabels[language][kind]}</span>
-      {durationContent(metricSeconds(session, kind, now))}
+      {durationContent(timeMetrics[kind])}
     </span>
   );
 
@@ -166,7 +169,7 @@ export function Board({
     <div
       className={`board board-${settings.layout} board-lang-${language} board-font-${resolveBoardFont(settings.boardFont)}${settings.backgroundOpacity > 0 && settings.backgroundOpacity < 1 ? ' board-translucent' : ''}${!mainWidgets.some((widget) => widget.id === 'state') ? ' board-no-state' : ''}${!mainWidgets.some((widget) => widget.id === 'timer') ? ' board-no-timer' : ''}${!mainWidgets.some((widget) => widget.id === 'message') ? ' board-no-message' : ''}${auxiliaryRowCount > 0 ? ` board-has-auxiliary-row board-auxiliary-rows-${auxiliaryRowCount}` : ''}`}
       style={boardStyle}
-      aria-label="視聴者向け表示"
+      aria-label={language === 'ja' ? '視聴者向け表示' : 'Viewer display'}
     >
       {mainWidgets.length > 0 && <div className="board-row board-main-row">{mainWidgets.map(renderWidget)}</div>}
       {metricWidgets.length > 0 && <div className="board-row board-metrics-row">{metricWidgets.map(renderWidget)}</div>}

@@ -1,9 +1,13 @@
+#![recursion_limit = "256"]
+
 mod local_server;
 
 use std::{fs, path::Path};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
-const DEFAULT_WINDOW_WIDTH: f64 = 1100.0;
+// The editor switches to its always-visible preview at 1120 CSS pixels.
+// Starting at the same logical width guarantees the preview on first launch.
+const DEFAULT_WINDOW_WIDTH: f64 = 1120.0;
 const DEFAULT_WINDOW_HEIGHT: f64 = 720.0;
 const MIN_WINDOW_WIDTH: f64 = 520.0;
 const MIN_WINDOW_HEIGHT: f64 = 480.0;
@@ -27,6 +31,25 @@ fn save_window_size(path: &Path, width: f64, height: f64) {
     );
 }
 
+fn migrate_legacy_data_dir(data_dir: &Path) {
+    if data_dir.join("state.json").exists() {
+        return;
+    }
+    let Some(parent) = data_dir.parent() else {
+        return;
+    };
+    let legacy_dir = parent.join("app.studystream.desktop");
+    for filename in ["state.json", "window-size.json"] {
+        let source = legacy_dir.join(filename);
+        let destination = data_dir.join(filename);
+        if !source.exists() || destination.exists() {
+            continue;
+        }
+        let _ = fs::create_dir_all(data_dir);
+        let _ = fs::copy(source, destination);
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -37,6 +60,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
+            migrate_legacy_data_dir(&data_dir);
             local_server::start(data_dir.clone())?;
             let window_size_path = data_dir.join("window-size.json");
             let (window_width, window_height) = load_window_size(&window_size_path)
@@ -47,7 +71,7 @@ pub fn run() {
                 "main",
                 WebviewUrl::External("http://127.0.0.1:47831/".parse()?),
             )
-            .title("StudyStream")
+            .title("StudyDot")
             .inner_size(window_width, window_height)
             .min_inner_size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
             .resizable(true)
@@ -71,5 +95,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("failed to run StudyStream");
+        .expect("failed to run StudyDot");
 }

@@ -4,9 +4,11 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
+import { isStaleState, mergeStateSections } from './stateRevision.mjs';
 
 const host = '127.0.0.1';
 const port = Number(process.env.STUDYSTREAM_PORT || 47831);
+const allowedHosts = new Set([`${host}:${port}`, `localhost:${port}`]);
 const rootDir = resolve(import.meta.dirname, '..');
 const distDir = join(rootDir, 'dist');
 const dataDir = resolve(process.env.STUDYSTREAM_DATA_DIR || join(rootDir, 'data'));
@@ -16,6 +18,9 @@ const clients = new Set();
 
 const initialState = {
   version: 1,
+  updatedAt: 0,
+  settingsUpdatedAt: 0,
+  sessionUpdatedAt: 0,
   session: {
     phase: 'idle',
     tracking: false,
@@ -23,6 +28,7 @@ const initialState = {
     phaseStartedAt: null,
     phaseEndsAt: null,
     pausedRemainingSeconds: null,
+    pauseReason: null,
     lastCheckpointAt: Date.now(),
     sessionSeconds: 0,
     todaySeconds: 0,
@@ -38,17 +44,20 @@ const initialState = {
     breakDurationSeconds: 600,
     autoCycleEnabled: true,
     completionSoundEnabled: true,
+    autoPauseVoiceEnabled: false,
+    autoPauseVoiceSeconds: 2,
+    speechLanguage: 'ja',
     language: 'ja',
     layout: 'horizontal',
     boardFont: 'sans',
     background: '#000000',
-    backgroundOpacity: 0.62,
+    backgroundOpacity: 0.78,
     textColor: '#ffffff',
     textOpacity: 1,
-    secondaryTextColor: '#ffffff',
-    secondaryTextOpacity: 0.78,
-    secondaryTextDefaultVersion: 2,
-    boardAppearanceDefaultVersion: 2,
+    secondaryTextColor: '#a3a3a3',
+    secondaryTextOpacity: 1,
+    secondaryTextDefaultVersion: 4,
+    boardAppearanceDefaultVersion: 3,
     defaultStreakVersion: 2,
     showMetricSeconds: false,
     note: '',
@@ -95,7 +104,7 @@ async function loadState() {
 }
 
 async function saveState(value) {
-  await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await writeFile(tempPath, JSON.stringify(value), 'utf8');
   await rename(tempPath, statePath);
 }
 
@@ -107,6 +116,26 @@ function sendJson(response, statusCode, value) {
     'Cache-Control': 'no-store',
   });
   response.end(JSON.stringify(value));
+}
+
+function applySecurityHeaders(response) {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('Referrer-Policy', 'no-referrer');
+  response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+}
+
+function isAllowedWriteRequest(request) {
+  if (request.method === 'GET' || request.method === 'HEAD') return true;
+  if (request.headers['sec-fetch-site'] === 'cross-site') return false;
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'http:'
+      && (parsed.hostname === host || parsed.hostname === 'localhost');
+  } catch {
+    return false;
+  }
 }
 
 function broadcast(value) {
@@ -140,8 +169,10 @@ const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm',
 };
 
 async function serveStatic(pathname, response) {
@@ -164,6 +195,15 @@ async function serveStatic(pathname, response) {
 }
 
 const server = createServer(async (request, response) => {
+  applySecurityHeaders(response);
+  if (!allowedHosts.has(request.headers.host || '')) {
+    sendJson(response, 403, { error: 'invalid-host' });
+    return;
+  }
+  if (!isAllowedWriteRequest(request)) {
+    sendJson(response, 403, { error: 'cross-origin-write-blocked' });
+    return;
+  }
   const url = new URL(request.url || '/', `http://${host}:${port}`);
 
   if (url.pathname === '/api/state' && request.method === 'GET') {
@@ -172,11 +212,21 @@ const server = createServer(async (request, response) => {
   }
 
   if (url.pathname === '/api/state' && request.method === 'PUT') {
+    if (!(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) {
+      sendJson(response, 415, { error: 'json-required' });
+      return;
+    }
     try {
-      currentState = await readBody(request);
-      await saveState(currentState);
-      broadcast(currentState);
-      sendJson(response, 200, currentState);
+      const next = await readBody(request);
+      if (isStaleState(currentState, next)) {
+        sendJson(response, 409, { error: 'stale-state' });
+        return;
+      }
+      const merged = mergeStateSections(currentState, next);
+      await saveState(merged);
+      currentState = merged;
+      broadcast(merged);
+      sendJson(response, 200, merged);
     } catch (error) {
       sendJson(response, error?.message === 'payload-too-large' ? 413 : 400, { error: 'invalid-state' });
     }
@@ -212,5 +262,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`StudyStream local server: http://${host}:${port}`);
+  console.log(`StudyDot local server: http://${host}:${port}`);
 });
