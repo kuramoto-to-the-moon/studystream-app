@@ -22,6 +22,10 @@ distribution. A self-signed certificate is not suitable for public downloads.
 
 ## macOS
 
+Public macOS releases are paused until Apple Developer ID signing and
+notarization are available. Keep the build configuration for future testing,
+but do not attach macOS artifacts to public releases.
+
 Developer ID signing and Apple notarization require an active Apple Developer
 Program membership. Once membership and the Developer ID Application
 certificate are available, configure these GitHub Actions secrets:
@@ -42,7 +46,6 @@ For every signed release:
 
 1. Build from the tagged commit in GitHub Actions.
 2. Verify the Windows Authenticode signature and timestamp.
-3. Verify macOS signing, notarization, and stapling.
-4. Recalculate SHA-256 checksums after signing.
-5. Upload only the verified signed artifacts to the download bucket.
-6. Update the website after all public download URLs have been checked.
+3. Recalculate SHA-256 checksums after signing.
+4. Upload only the verified signed artifacts to the download bucket.
+5. Update the website after all public download URLs have been checked.

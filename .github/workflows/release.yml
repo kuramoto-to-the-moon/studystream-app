@@ -1,4 +1,4 @@
-name: Build beta installers
+name: Build Windows beta installer
 
 on:
   workflow_dispatch:
@@ -52,12 +52,6 @@ jobs:
             # The NSIS installer supports the beta version and is the public
             # Windows artifact we link from the website.
             args: --target x86_64-pc-windows-msvc --bundles nsis
-          - platform: macos-latest
-            label: macOS Apple Silicon
-            args: --target aarch64-apple-darwin
-          - platform: macos-latest
-            label: macOS Intel
-            args: --target x86_64-apple-darwin
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
@@ -67,7 +61,7 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || 'x86_64-pc-windows-msvc' }}
+          targets: x86_64-pc-windows-msvc
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: ./src-tauri -> target
@@ -81,11 +75,10 @@ jobs:
           releaseBody: |
             StudyDotの初期ベータ版です。
 
-            - Windows: x64用インストーラー
-            - macOS: Apple Silicon用またはIntel用DMG
+            - Windows 10 / 11: x64用インストーラー
 
-            現時点では商用コード署名・Apple公証を行っていません。OSの警告が表示される場合があります。
-            Windowsは「詳細情報」から、macOSは「プライバシーとセキュリティ」から許可する必要があります。
+            現時点ではコード署名を行っていないため、Windowsの警告が表示される場合があります。
+            警告が表示された場合は「詳細情報」から実行を許可してください。
           releaseDraft: false
           prerelease: true
           args: ${{ matrix.args }}
